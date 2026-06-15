@@ -154,20 +154,20 @@
   .bolt.on .t{color:var(--flare);}
 
   /* per-card review */
-  .rvwcard{position:relative;width:186px;height:186px;border-radius:20px;display:grid;place-items:center;margin:20px 0 2px;
+  .rvwcard{position:relative;width:min(340px,80vw,44vh);height:min(340px,80vw,44vh);border-radius:24px;display:grid;place-items:center;margin:14px 0 6px;
     background:linear-gradient(165deg,#1b1c22,#0d0d11);border:1px solid rgba(255,255,255,.1);
     touch-action:none;cursor:grab;}
   .rvwcard:active{cursor:grabbing;}
   .rvwcard.in{animation:pop .55s var(--spring);}
   @keyframes pop{0%{transform:scale(.5) rotate(-6deg);opacity:0}60%{transform:scale(1.05) rotate(2deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}
-  .rvwcard .rvw-g{font-size:92px;filter:drop-shadow(0 8px 14px rgba(0,0,0,.5));}
-  .rvw-stamp{position:absolute;top:42px;z-index:5;font-size:18px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
-    padding:5px 12px;border-radius:9px;border:2.5px solid;opacity:0;pointer-events:none;transition:opacity .08s;}
-  .rvw-stamp.sell{left:10px;color:var(--flare);border-color:var(--flare);transform:rotate(-14deg);box-shadow:0 0 22px rgba(255,208,93,.5);}
-  .rvw-stamp.collect{right:10px;color:var(--emerald);border-color:var(--emerald);transform:rotate(14deg);box-shadow:0 0 22px rgba(63,207,134,.5);}
-  .rvw-rar{position:absolute;top:12px;left:0;right:0;font-size:11px;letter-spacing:.24em;text-transform:uppercase;font-weight:700;}
-  .rvw-name{font-size:20px;font-weight:700;margin-top:14px;}
-  .rvw-val{font-size:34px;font-weight:700;color:var(--flare);font-variant-numeric:tabular-nums;text-shadow:0 0 26px rgba(255,208,93,.4);margin-top:2px;}
+  .rvwcard .rvw-g{font-size:min(168px,38vw);line-height:1;filter:drop-shadow(0 10px 18px rgba(0,0,0,.5));}
+  .rvw-stamp{position:absolute;top:11%;z-index:5;font-size:24px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+    padding:6px 15px;border-radius:11px;border:3px solid;opacity:0;pointer-events:none;transition:opacity .08s;}
+  .rvw-stamp.sell{left:14px;color:var(--flare);border-color:var(--flare);transform:rotate(-14deg);box-shadow:0 0 22px rgba(255,208,93,.5);}
+  .rvw-stamp.collect{right:14px;color:var(--emerald);border-color:var(--emerald);transform:rotate(14deg);box-shadow:0 0 22px rgba(63,207,134,.5);}
+  .rvw-rar{position:absolute;top:16px;left:0;right:0;font-size:13px;letter-spacing:.26em;text-transform:uppercase;font-weight:700;}
+  .rvw-name{font-size:24px;font-weight:700;margin-top:18px;}
+  .rvw-val{font-size:42px;font-weight:700;color:var(--flare);font-variant-numeric:tabular-nums;text-shadow:0 0 26px rgba(255,208,93,.4);margin-top:2px;}
   .rvw-dots{display:flex;gap:5px;justify-content:center;flex-wrap:wrap;margin-top:12px;max-width:220px;}
   .rvw-dots i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.18);}
   .rvw-dots i.done{background:var(--electric);}

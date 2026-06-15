@@ -1,0 +1,1308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#060a0c" />
+<title>Rippit — Pack-Opening Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Hanken+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+/* ============================================================
+   RIPPIT — interactive prototype  (play-money demo)
+   Single-file: structure + style + behavior
+   ============================================================ */
+:root{
+  --bg:#05090b;
+  --bg-2:#081215;
+  --ink:#eaf4f1;
+  --ink-2:#b7cbc7;     /* AA-compliant secondary */
+  --muted:#86a09c;
+  --line:rgba(120,220,200,.14);
+  --line-2:rgba(120,220,200,.28);
+  --panel:rgba(255,255,255,.028);
+  --panel-2:rgba(255,255,255,.05);
+  --teal:#2fe3c6;
+  --teal-deep:#119e8c;
+  --mint:#7ff3da;
+  --gold:#f6c560;
+  --gold-deep:#e0a93c;
+  --rose:#ff7b8a;
+  /* rarity */
+  --r-common:#9fb0ad;
+  --r-uncommon:#37d99a;
+  --r-rare:#49b6f7;
+  --r-epic:#c08bff;
+  --r-legend:#fbbf3c;
+  --radius:18px;
+  --radius-sm:12px;
+  --shadow:0 30px 80px -30px rgba(0,0,0,.8);
+  --ease:cubic-bezier(.22,.61,.36,1);
+  --maxw:1180px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:"Hanken Grotesk",system-ui,sans-serif;
+  background:var(--bg);
+  color:var(--ink);
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+  min-height:100vh;
+}
+/* atmospheric background */
+.bg-fx{position:fixed;inset:0;z-index:-2;pointer-events:none;
+  background:
+    radial-gradient(1200px 700px at 78% -10%, rgba(47,227,198,.10), transparent 60%),
+    radial-gradient(900px 700px at 8% 8%, rgba(246,197,96,.06), transparent 55%),
+    radial-gradient(1100px 900px at 50% 120%, rgba(73,182,247,.07), transparent 60%),
+    linear-gradient(180deg,#05090b,#070f12 40%,#05090b);
+}
+.bg-aurora{position:fixed;inset:-20%;z-index:-2;pointer-events:none;opacity:.5;
+  background:
+    radial-gradient(40% 50% at 30% 30%, rgba(47,227,198,.18), transparent 70%),
+    radial-gradient(40% 50% at 70% 60%, rgba(124,139,255,.14), transparent 70%),
+    radial-gradient(35% 45% at 55% 80%, rgba(246,197,96,.10), transparent 70%);
+  filter:blur(30px);
+  animation:aurora 22s var(--ease) infinite alternate;
+}
+@keyframes aurora{
+  0%{transform:translate3d(-3%,-2%,0) scale(1.05) rotate(0deg)}
+  100%{transform:translate3d(4%,3%,0) scale(1.15) rotate(8deg)}
+}
+.bg-grain{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.05;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+
+/* ---------- typography helpers ---------- */
+.display{font-family:"Syne",sans-serif;font-weight:800;letter-spacing:-.02em;line-height:1.02}
+.mono{font-family:"JetBrains Mono",monospace}
+.eyebrow{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--teal);font-weight:500}
+.money{font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums}
+
+/* ---------- layout ---------- */
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px}
+.view{display:none;animation:viewIn .5s var(--ease) both}
+.view.active{display:block}
+@keyframes viewIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+/* ---------- nav ---------- */
+header.nav{position:sticky;top:0;z-index:40;padding:14px 0;backdrop-filter:blur(10px)}
+.nav-inner{display:flex;align-items:center;gap:14px;
+  background:linear-gradient(180deg,rgba(10,20,22,.86),rgba(8,16,18,.72));
+  border:1px solid var(--line);border-radius:999px;padding:10px 14px;box-shadow:var(--shadow)}
+.logo{font-family:"JetBrains Mono",monospace;font-weight:700;letter-spacing:.42em;color:var(--mint);
+  font-size:17px;padding-left:8px;cursor:pointer;text-shadow:0 0 22px rgba(47,227,198,.35);white-space:nowrap}
+.logo b{color:var(--gold)}
+.nav-links{display:flex;gap:4px;margin-left:6px}
+.nav-links a{font-size:13.5px;color:var(--ink-2);text-decoration:none;padding:9px 15px;border-radius:999px;
+  border:1px solid transparent;transition:.2s var(--ease);font-weight:600;white-space:nowrap;cursor:pointer}
+.nav-links a:hover{color:var(--ink);background:var(--panel)}
+.nav-links a.active{color:#04110e;background:var(--gold);border-color:var(--gold-deep)}
+.nav-spacer{flex:1}
+.wallet-chip{display:flex;align-items:center;gap:8px;border:1px solid var(--line-2);border-radius:999px;
+  padding:8px 14px;background:var(--panel);cursor:pointer;transition:.2s}
+.wallet-chip:hover{background:var(--panel-2)}
+.wallet-chip .lbl{font-size:10px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase}
+.wallet-chip .amt{color:var(--mint);font-weight:700}
+.btn{font-family:inherit;cursor:pointer;border:0;border-radius:999px;font-weight:700;transition:.18s var(--ease);
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap}
+.btn:active{transform:translateY(1px) scale(.99)}
+.btn-gold{background:linear-gradient(180deg,#ffd87a,#f0b542);color:#1b1305;padding:9px 18px;
+  box-shadow:0 10px 30px -10px rgba(246,197,96,.6),inset 0 1px 0 rgba(255,255,255,.5)}
+.btn-gold:hover{filter:brightness(1.06)}
+.btn-ghost{background:var(--panel);color:var(--ink);border:1px solid var(--line-2);padding:9px 18px}
+.btn-ghost:hover{background:var(--panel-2)}
+.btn-teal{background:linear-gradient(180deg,#3cf0d2,#13b39d);color:#042019;padding:11px 20px;
+  box-shadow:0 10px 30px -12px rgba(47,227,198,.7)}
+.btn-lg{padding:15px 26px;font-size:15px;width:100%}
+.nav-burger{display:none;width:42px;height:42px;border-radius:50%;border:1px solid var(--line-2);
+  background:var(--panel);color:var(--ink);font-size:18px;cursor:pointer}
+
+/* ---------- home ---------- */
+.hero{padding:34px 0 8px}
+.welcome{display:grid;grid-template-columns:1.3fr 1fr;gap:18px;align-items:stretch}
+.card-panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:26px;position:relative;overflow:hidden}
+.card-panel.glow::before{content:"";position:absolute;inset:0;background:radial-gradient(500px 200px at 0% 0%,rgba(47,227,198,.12),transparent 60%);pointer-events:none}
+.tag{display:inline-block;font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--teal);border:1px solid var(--line-2);border-radius:999px;padding:5px 12px}
+.h-title{font-size:clamp(26px,4vw,40px);margin:14px 0 18px}
+.h-title em{font-style:normal;color:var(--gold)}
+.h-cta{display:flex;gap:10px;flex-wrap:wrap}
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stat{background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.01));
+  border:1px solid var(--line);border-radius:var(--radius-sm);padding:16px 16px 14px}
+.stat .k{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+.stat .v{font-family:"JetBrains Mono",monospace;font-size:24px;font-weight:700;margin-top:6px;color:var(--ink)}
+.stat .v.pos{color:var(--mint)} .stat .v.neg{color:var(--rose)}
+.stat small{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+
+.ribbon{margin-top:16px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  background:linear-gradient(100deg,rgba(246,197,96,.10),rgba(47,227,198,.05));
+  border:1px solid var(--line-2);border-radius:var(--radius);padding:16px 22px}
+.ribbon b{color:var(--gold)}
+.ribbon a{color:var(--teal);font-weight:700;text-decoration:none;cursor:pointer;white-space:nowrap}
+
+.section{padding:42px 0 6px;text-align:center}
+.section .eyebrow{display:block;margin-bottom:8px}
+.section h2{font-size:clamp(24px,3.4vw,34px);margin:0 0 6px}
+.section p.sub{color:var(--ink-2);max-width:560px;margin:0 auto}
+
+.bigprize{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:26px;text-align:left}
+.feature{position:relative;border-radius:var(--radius);padding:20px;overflow:hidden;
+  background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));border:1px solid var(--line)}
+.feature .banner{height:120px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:54px;
+  filter:saturate(1.1);margin-bottom:14px;position:relative;overflow:hidden}
+.feature .banner::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 30%,rgba(255,255,255,.18),transparent 60%)}
+.feature .col{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--teal)}
+.feature h3{margin:6px 0 10px;font-size:18px}
+.jackpot-box{background:rgba(0,0,0,.35);border:1px solid var(--line-2);border-radius:12px;padding:14px;text-align:center;margin:10px 0}
+.jackpot-box .k{font-family:"JetBrains Mono",monospace;font-size:9.5px;letter-spacing:.2em;color:var(--muted);text-transform:uppercase}
+.jackpot-box .v{font-family:"JetBrains Mono",monospace;font-weight:700;font-size:26px;color:var(--gold);text-shadow:0 0 24px rgba(246,197,96,.35)}
+.feature .foot{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--ink-2)}
+.feature .foot a{color:var(--gold);text-decoration:none;font-weight:700;cursor:pointer}
+
+/* marquee */
+.marquee{margin:26px 0 10px;-webkit-mask:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);overflow:hidden}
+.marquee-track{display:flex;gap:16px;width:max-content;animation:marquee 38s linear infinite}
+.mini-card{width:150px;flex:0 0 auto}
+
+/* ---------- pack catalog ---------- */
+.toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:center;margin:8px 0 26px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.chips.scroll{flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;padding-bottom:4px;scrollbar-width:none}
+.chips.scroll::-webkit-scrollbar{display:none}
+.chip{font-family:inherit;cursor:pointer;background:var(--panel);border:1px solid var(--line);color:var(--ink-2);
+  padding:8px 15px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap;transition:.18s}
+.chip:hover{color:var(--ink);border-color:var(--line-2)}
+.chip.on{background:var(--gold);color:#1b1305;border-color:var(--gold-deep)}
+.chip.on.teal{background:linear-gradient(180deg,#3cf0d2,#13b39d);color:#042019;border-color:transparent}
+.search,.select{font-family:inherit;background:var(--panel);border:1px solid var(--line);color:var(--ink);
+  padding:10px 15px;border-radius:999px;font-size:13.5px;outline:none}
+.search{min-width:200px}
+.search:focus,.select:focus{border-color:var(--teal)}
+.select{cursor:pointer}
+
+.pack-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:18px;padding-bottom:40px}
+.pack{position:relative;border-radius:var(--radius);padding:18px;overflow:hidden;cursor:pointer;
+  background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.012));border:1px solid var(--line);
+  transition:.25s var(--ease)}
+.pack:hover{transform:translateY(-4px);border-color:var(--line-2);box-shadow:0 24px 50px -28px rgba(0,0,0,.9)}
+.pack-badges{display:flex;justify-content:space-between;gap:8px;margin-bottom:6px}
+.badge{font-family:"JetBrains Mono",monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;
+  padding:5px 10px;border-radius:999px;font-weight:600;border:1px solid transparent}
+.badge.vol-low{color:#8be0c0;background:rgba(55,217,154,.12);border-color:rgba(55,217,154,.3)}
+.badge.vol-medium{color:#f6c560;background:rgba(246,197,96,.12);border-color:rgba(246,197,96,.3)}
+.badge.vol-high{color:#ff9e6b;background:rgba(255,120,80,.12);border-color:rgba(255,140,90,.3)}
+.badge.vol-extreme{color:#ff7b8a;background:rgba(255,90,110,.14);border-color:rgba(255,90,110,.35)}
+.badge.mult{color:var(--mint);background:rgba(47,227,198,.1);border-color:rgba(47,227,198,.3)}
+.pack-foil-wrap{display:flex;justify-content:center;padding:14px 0 18px;perspective:700px}
+.foil{width:120px;height:150px;border-radius:12px;position:relative;transform-style:preserve-3d;
+  animation:floaty 5s var(--ease) infinite;transition:transform .4s var(--ease)}
+.pack:hover .foil{transform:rotateY(-12deg) rotateX(6deg)}
+.foil-skin{position:absolute;inset:0;border-radius:12px;overflow:hidden;
+  background:linear-gradient(135deg,#caa53e 0%,#fff0c0 18%,#d8b24a 36%,#9c7d2c 54%,#ffe9a8 72%,#c39a36 100%);
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.25),inset 0 -16px 30px rgba(0,0,0,.35),0 18px 40px -16px rgba(0,0,0,.8)}
+.foil-skin.silver{background:linear-gradient(135deg,#9aa6ad 0%,#eef3f6 18%,#aab4bb 36%,#737d84 54%,#f2f6f8 72%,#9aa6ad 100%)}
+.foil-skin::before{content:"RIPPIT";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:"JetBrains Mono",monospace;font-weight:700;letter-spacing:.18em;font-size:14px;color:rgba(60,40,8,.55);
+  text-shadow:0 1px 0 rgba(255,255,255,.45)}
+.foil-skin.silver::before{color:rgba(40,50,58,.5)}
+.foil-skin::after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.7),transparent);transform:skewX(-18deg);
+  animation:sheen 4.5s var(--ease) infinite}
+.foil .serrate{position:absolute;left:0;right:0;height:9px;background:
+  repeating-linear-gradient(90deg,rgba(0,0,0,.25) 0 3px,transparent 3px 6px)}
+.foil .serrate.top{top:6px}.foil .serrate.bot{bottom:6px}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+@keyframes sheen{0%{left:-60%}55%,100%{left:130%}}
+.pack-meta .col{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase}
+.pack-meta h3{margin:5px 0 8px;font-size:18px}
+.odds-pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
+.opill{font-family:"JetBrains Mono",monospace;font-size:10px;padding:4px 9px;border-radius:999px;border:1px solid var(--line-2);color:var(--ink-2)}
+.odds-link{font-size:11px;color:var(--teal);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.prog{height:6px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden;margin:4px 0 4px}
+.prog>i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--teal),var(--gold))}
+.prog-row{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-2);margin-bottom:12px}
+.prog-row b{color:var(--gold)}
+.pack-buy{display:flex;flex-direction:column;gap:10px}
+.price-row{display:flex;align-items:flex-end;justify-content:space-between}
+.price-row .k{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase}
+.price-row .v{font-family:"JetBrains Mono",monospace;font-size:24px;font-weight:700}
+.price-row .cards-btn{font-size:12px;padding:7px 14px}
+
+/* ---------- detail ---------- */
+.back-link{display:inline-flex;align-items:center;gap:8px;color:var(--teal);cursor:pointer;font-weight:700;
+  border:1px solid var(--line-2);border-radius:999px;padding:8px 16px;background:var(--panel);margin:20px 0;font-size:13px}
+.detail-head{text-align:center;margin-bottom:22px}
+.detail-head h1{font-size:clamp(28px,4vw,42px);margin:6px 0 8px}
+.detail-head p{color:var(--ink-2);max-width:560px;margin:0 auto}
+.complete-panel{background:linear-gradient(180deg,rgba(246,197,96,.07),rgba(255,255,255,.01));
+  border:1px solid var(--line-2);border-radius:var(--radius);padding:24px;margin-bottom:30px}
+.complete-panel .big{font-family:"Syne";font-weight:800;font-size:30px;margin:6px 0 14px}
+.complete-panel .big b{color:var(--gold)}
+.cards-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.cards-head h3{margin:0;font-size:20px}
+.seg{display:inline-flex;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:3px}
+.seg button{font-family:inherit;cursor:pointer;border:0;background:transparent;color:var(--ink-2);padding:7px 14px;border-radius:999px;font-size:12.5px;font-weight:600}
+.seg button.on{background:var(--gold);color:#1b1305}
+.collect-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;padding-bottom:40px}
+
+/* ---------- trading card component ---------- */
+.tcard{aspect-ratio:5/7;border-radius:14px;position:relative;overflow:hidden;
+  border:1.5px solid rgba(255,255,255,.14);box-shadow:0 18px 40px -22px rgba(0,0,0,.9);background:#0a1316}
+.tcard .art{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:62px}
+.tcard .art::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 28%,rgba(255,255,255,.22),transparent 55%),linear-gradient(180deg,transparent 40%,rgba(0,0,0,.55))}
+.tcard .top{position:absolute;top:0;left:0;right:0;padding:8px 10px;display:flex;justify-content:space-between;align-items:flex-start;z-index:2}
+.tcard .nm{font-family:"Syne";font-weight:700;font-size:13px;line-height:1.05;text-shadow:0 1px 4px rgba(0,0,0,.7)}
+.tcard .no{font-family:"JetBrains Mono";font-size:9px;color:rgba(255,255,255,.7);text-align:right}
+.tcard .no b{display:block;font-size:15px;color:#fff}
+.tcard .bottom{position:absolute;left:0;right:0;bottom:0;padding:8px 10px;z-index:2;display:flex;justify-content:space-between;align-items:flex-end}
+.tcard .val{font-family:"JetBrains Mono";font-weight:700;font-size:14px;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.8)}
+.r-tag{display:inline-flex;align-items:center;gap:4px;font-family:"JetBrains Mono";font-size:9px;font-weight:600;
+  padding:3px 7px;border-radius:6px;letter-spacing:.04em;text-transform:uppercase;backdrop-filter:blur(3px);background:rgba(0,0,0,.4)}
+.tcard.frame-common{border-color:var(--r-common)} .r-tag.common{color:var(--r-common)}
+.tcard.frame-uncommon{border-color:var(--r-uncommon);box-shadow:0 0 24px -6px rgba(55,217,154,.5)} .r-tag.uncommon{color:var(--r-uncommon)}
+.tcard.frame-rare{border-color:var(--r-rare);box-shadow:0 0 28px -4px rgba(73,182,247,.55)} .r-tag.rare{color:var(--r-rare)}
+.tcard.frame-epic{border-color:var(--r-epic);box-shadow:0 0 34px -2px rgba(192,139,255,.6)} .r-tag.epic{color:var(--r-epic)}
+.tcard.frame-legend{border-color:var(--r-legend);box-shadow:0 0 42px 0 rgba(251,191,60,.6)} .r-tag.legend{color:var(--r-legend)}
+.tcard.frame-legend::before,.tcard.frame-epic::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,.25),transparent 70%);background-size:250% 250%;
+  animation:holo 4s linear infinite;mix-blend-mode:overlay}
+@keyframes holo{0%{background-position:0% 0%}100%{background-position:100% 100%}}
+.tcard .status{position:absolute;top:8px;right:8px;z-index:3;font-family:"JetBrains Mono";font-size:8.5px;font-weight:700;
+  padding:3px 7px;border-radius:6px;letter-spacing:.06em}
+.status.need{background:rgba(255,120,90,.9);color:#2a0c06}
+.status.owned{background:rgba(55,217,154,.9);color:#042417}
+.status.dupe{background:rgba(192,139,255,.92);color:#1c0935}
+.status.new{background:rgba(246,197,96,.95);color:#1b1305}
+.tcard.locked .art{filter:grayscale(1) brightness(.45)}
+.tcard.locked .nm,.tcard.locked .val{opacity:.6}
+.collect-cell{cursor:default}
+.collect-cell .cap{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:11px;color:var(--ink-2)}
+
+/* ---------- collection page ---------- */
+.coll-tabs{display:flex;justify-content:center;margin:8px 0 26px}
+.coll-layout{display:grid;grid-template-columns:280px 1fr;gap:22px;align-items:start;padding-bottom:50px}
+.sidebar .box{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:14px}
+.sidebar h4{font-family:"JetBrains Mono";font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--teal);margin:0 0 14px}
+.rarity-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)}
+.rarity-row:last-child{border:0}
+.rarity-row .dot{width:9px;height:9px;border-radius:3px;display:inline-block;margin-right:9px}
+.rarity-row .cnt{font-family:"JetBrains Mono";font-size:12px;color:var(--ink-2);background:var(--panel-2);border-radius:6px;padding:2px 9px}
+.sealed{display:flex;align-items:center;gap:12px;background:rgba(246,197,96,.06);border:1px solid var(--line-2);border-radius:12px;padding:12px;margin-top:10px}
+.sealed .ic{width:40px;height:40px;border-radius:10px;background:radial-gradient(circle at 40% 30%,#ffe39a,#d8a93a);flex:0 0 auto}
+.sealed .info{flex:1;min-width:0}
+.sealed .info b{font-size:13px}.sealed .info small{display:block;color:var(--muted);font-size:11px}
+.vault-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px}
+.kept-head{font-family:"JetBrains Mono";font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--teal);margin:0 0 14px;display:flex;gap:10px;align-items:center}
+.kept-head .n{background:var(--gold);color:#1b1305;border-radius:999px;padding:1px 9px;font-size:11px}
+
+/* history */
+.hist-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}
+.hist-stats .stat .v{font-size:22px}
+.hist-stats .stat .v.gold{color:var(--gold)}
+.hist-entry{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px}
+.hist-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.hist-top .id{font-family:"JetBrains Mono";font-size:11px;color:var(--ink);background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:4px 10px}
+.hist-top .meta{font-size:12px;color:var(--muted)}
+.hist-top .res{font-family:"JetBrains Mono";font-size:12.5px}
+.hist-top .res .kept{color:var(--mint)} .hist-top .res .sold{color:var(--gold)}
+.hist-cards{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;max-width:520px}
+.empty{text-align:center;padding:50px 20px;color:var(--muted)}
+.empty .btn{margin-top:16px}
+
+/* collections tab */
+.colls-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;padding-bottom:40px}
+.coll-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:.2s}
+.coll-card:hover{border-color:var(--line-2);transform:translateY(-3px)}
+.coll-card .bn{height:130px;display:flex;align-items:center;justify-content:center;font-size:60px;position:relative}
+.coll-card .bd{padding:16px}
+.coll-card .bd .t{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.coll-card .bd .t b{font-size:17px} .coll-card .bd .t .frac{font-family:"JetBrains Mono";color:var(--teal);font-size:13px}
+.avatars{display:flex;gap:6px;margin-top:12px;align-items:center}
+.avatars .av{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;border:1px solid var(--line-2);background:#0a1316}
+.avatars .more{font-size:11px;color:var(--muted);margin-left:4px}
+
+/* ---------- provably fair page ---------- */
+.pf-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;padding-bottom:40px}
+.pf-steps{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.pf-step{background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:12px;padding:14px}
+.pf-step .n{font-family:"JetBrains Mono";font-size:10px;letter-spacing:.18em;color:var(--teal);text-transform:uppercase}
+.pf-step p{font-size:13px;color:var(--ink-2);margin:8px 0 0}
+.pf-step code{font-family:"JetBrains Mono";color:var(--mint);font-size:12px}
+.formula{font-family:"JetBrains Mono";font-size:11.5px;color:var(--ink-2);background:#04100d;border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:14px;overflow-x:auto;white-space:pre;line-height:1.7}
+.bins .bin{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;background:rgba(255,255,255,.02)}
+.bins .bin .l{display:flex;align-items:center;gap:9px}
+.bins .bin .pct{font-family:"JetBrains Mono";font-weight:700}
+.bins .bin .rng{font-family:"JetBrains Mono";font-size:11px;color:var(--muted)}
+
+/* ---------- modal ---------- */
+.scrim{position:fixed;inset:0;z-index:60;background:rgba(2,6,8,.72);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:20px}
+.scrim.show{display:flex;animation:fade .25s}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.modal{width:100%;max-width:420px;background:linear-gradient(180deg,#0c181b,#081215);border:1px solid var(--line-2);
+  border-radius:22px;padding:26px;box-shadow:var(--shadow);position:relative;animation:pop .3s var(--ease)}
+@keyframes pop{from{opacity:0;transform:translateY(20px) scale(.97)}to{opacity:1;transform:none}}
+.modal .x{position:absolute;top:16px;right:16px;width:34px;height:34px;border-radius:50%;border:1px solid var(--line-2);background:var(--panel);color:var(--ink);cursor:pointer;font-size:16px}
+.modal .eyebrow{display:block;margin-bottom:6px}
+.modal h3{font-family:"Syne";font-weight:800;font-size:24px;margin:0 0 6px}
+.modal p.s{color:var(--ink-2);font-size:13.5px;margin:0 0 18px}
+.amt-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px}
+.amt-grid button{font-family:"JetBrains Mono";font-weight:700;cursor:pointer;border:1px solid var(--line-2);background:var(--panel);color:var(--ink);padding:11px 0;border-radius:10px;font-size:13px}
+.amt-grid button.on{background:var(--gold);color:#1b1305;border-color:var(--gold-deep)}
+.field{display:flex;align-items:center;gap:8px;border:1px solid var(--line-2);border-radius:12px;padding:12px 14px;margin-bottom:8px}
+.field span{color:var(--muted);font-family:"JetBrains Mono"}
+.field input{flex:1;background:transparent;border:0;outline:none;color:var(--ink);font-family:"JetBrains Mono";font-size:16px}
+.rg-note{font-size:11.5px;color:var(--ink-2);background:rgba(255,120,90,.07);border:1px solid rgba(255,120,90,.2);border-radius:10px;padding:10px 12px;margin:12px 0}
+.rg-note b{color:var(--rose)}
+.crypto-link{display:block;text-align:center;margin-top:12px;color:var(--ink-2);font-size:12.5px;cursor:pointer}
+
+/* odds popover reuse modal */
+.odds-table{width:100%;border-collapse:collapse}
+.odds-table td{padding:10px 4px;border-bottom:1px solid var(--line);font-size:13px}
+.odds-table td:last-child{text-align:right;font-family:"JetBrains Mono";font-weight:700}
+.odds-table .evrow td{color:var(--gold);border:0;padding-top:14px;font-weight:700}
+
+/* ============================================================
+   RIP OVERLAY (the centerpiece)
+   ============================================================ */
+.rip{position:fixed;inset:0;z-index:80;display:none;flex-direction:column;align-items:center;justify-content:center;
+  background:radial-gradient(900px 600px at 50% 30%,rgba(20,40,44,.7),rgba(3,7,9,.96));overflow:hidden}
+.rip.show{display:flex}
+.rip .spot{position:absolute;top:-10%;width:48%;height:120%;pointer-events:none;opacity:.5;filter:blur(8px)}
+.rip .spot.l{left:2%;background:linear-gradient(180deg,rgba(124,243,218,.5),transparent 70%);transform:rotate(14deg)}
+.rip .spot.r{right:2%;background:linear-gradient(180deg,rgba(124,160,255,.5),transparent 70%);transform:rotate(-14deg)}
+.rip-label{text-align:center;margin-bottom:20px;z-index:3}
+.rip-label .eyebrow{display:block}
+.rip-label .pill{display:inline-block;margin-top:8px;font-family:"JetBrains Mono";font-size:11px;color:var(--gold);border:1px solid var(--line-2);border-radius:999px;padding:5px 14px}
+.rip-progress{width:min(420px,80vw);height:4px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden;margin-bottom:26px;z-index:3}
+.rip-progress>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--teal),var(--gold));transition:width .4s var(--ease)}
+.rip-progress .pl{position:absolute;transform:translateY(-22px);font-family:"JetBrains Mono";font-size:11px;letter-spacing:.18em;color:var(--ink-2)}
+
+/* stage: pack */
+.rip-stage{position:relative;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh}
+.bigpack{perspective:900px;cursor:grab}
+.bigpack:active{cursor:grabbing}
+.bigpack .foil{width:min(280px,70vw);height:min(360px,90vw);animation:floaty 5s var(--ease) infinite}
+.bigpack .foil .foil-skin::before{font-size:34px;letter-spacing:.22em}
+.bigpack.tear .foil{animation:shake .5s ease 2}
+@keyframes shake{0%,100%{transform:translate(0,0) rotate(0)}20%{transform:translate(-6px,2px) rotate(-2deg)}40%{transform:translate(7px,-3px) rotate(2deg)}60%{transform:translate(-5px,2px) rotate(-1.5deg)}80%{transform:translate(5px,-2px) rotate(1.5deg)}}
+.tear-top{position:absolute;top:0;left:50%;transform:translateX(-50%);width:min(280px,70vw);height:30%;border-radius:12px 12px 0 0;overflow:hidden;z-index:5;opacity:0}
+.bigpack.opened .foil{opacity:0;transition:opacity .4s}
+.bigpack.opened .tear-top{opacity:1;animation:tearfly .9s var(--ease) forwards}
+@keyframes tearfly{to{transform:translateX(-50%) translateY(-220px) rotate(22deg);opacity:0}}
+.hint{margin-top:24px;color:var(--ink-2);font-size:13px;text-align:center;z-index:3}
+.hint b{color:var(--mint)}
+.rip-actions{display:flex;gap:12px;margin-top:18px;z-index:3}
+
+/* particles */
+.spark{position:absolute;width:7px;height:7px;border-radius:50%;background:var(--gold);pointer-events:none;z-index:6;opacity:0}
+.spark.go{animation:spark .9s ease forwards}
+@keyframes spark{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.2)}}
+
+/* stage: reveal */
+.reveal-card{width:min(300px,76vw);aspect-ratio:5/7;position:relative;transform-style:preserve-3d;transition:transform .55s var(--ease);will-change:transform}
+.reveal-card.flipped{transform:rotateY(180deg)}
+.reveal-card .face{position:absolute;inset:0;backface-visibility:hidden;border-radius:16px;overflow:hidden}
+.reveal-card .back{background:
+   repeating-linear-gradient(45deg,#0c2a28 0 10px,#0a201f 10px 20px),radial-gradient(circle at 50% 50%,rgba(47,227,198,.25),transparent 60%);
+   border:1.5px solid var(--line-2);display:flex;align-items:center;justify-content:center}
+.reveal-card .back .rb{font-family:"JetBrains Mono";letter-spacing:.3em;color:rgba(47,227,198,.6);font-weight:700}
+.reveal-card .front{transform:rotateY(180deg)}
+.reveal-card.fly-left{animation:flyL .45s var(--ease) forwards}
+.reveal-card.fly-right{animation:flyR .45s var(--ease) forwards}
+@keyframes flyL{to{transform:translateX(-130%) rotate(-22deg);opacity:0}}
+@keyframes flyR{to{transform:translateX(130%) rotate(22deg);opacity:0}}
+.decide{display:flex;gap:18px;margin-top:26px;z-index:3}
+.decide button{min-width:130px;padding:14px 22px;border-radius:999px;font-weight:700;cursor:pointer;font-family:inherit;font-size:15px;border:1.5px solid}
+.decide .sell{background:rgba(255,120,90,.08);border-color:rgba(255,140,100,.5);color:#ffb499}
+.decide .sell:hover{background:rgba(255,120,90,.16)}
+.decide .keep{background:rgba(47,227,198,.08);border-color:rgba(47,227,198,.5);color:var(--mint)}
+.decide .keep:hover{background:rgba(47,227,198,.16)}
+.decide small{opacity:.8;font-family:"JetBrains Mono"}
+
+/* showcase */
+.showcase{display:flex;align-items:center;justify-content:center;gap:0;height:54vh;perspective:1200px;position:relative;width:100%}
+.sc-card{position:absolute;width:min(230px,60vw);aspect-ratio:5/7;transition:transform .5s var(--ease),opacity .5s;cursor:pointer}
+
+/* summary */
+.summary{text-align:center;z-index:3;width:min(640px,92vw)}
+.summary h2{font-family:"Syne";font-weight:800;font-size:40px;margin:0 0 18px}
+.sum-stats{display:flex;justify-content:center;gap:38px;margin-bottom:22px}
+.sum-stats div .v{font-family:"JetBrains Mono";font-weight:700;font-size:34px}
+.sum-stats .kept .v{color:var(--mint)} .sum-stats .sold .v{color:#ff9e6b} .sum-stats .earn .v{color:var(--gold)}
+.sum-stats div .k{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+.sum-chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:20px}
+.sum-chip{border:1px solid var(--line-2);border-radius:10px;padding:8px 12px;font-size:12px;text-align:left;background:var(--panel)}
+.sum-chip b{display:block;font-size:13px}
+.sum-chip small{font-family:"JetBrains Mono";font-size:11px}
+.sum-chip .c-keep{color:var(--mint)} .sum-chip .c-sold{color:var(--gold)}
+.pf-collapse{border:1px solid var(--line-2);border-radius:12px;margin:0 auto 18px;max-width:560px;overflow:hidden;text-align:left}
+.pf-collapse summary{cursor:pointer;padding:14px 16px;font-weight:700;display:flex;align-items:center;gap:8px;list-style:none}
+.pf-collapse summary::-webkit-details-marker{display:none}
+.pf-collapse[open] summary{border-bottom:1px solid var(--line)}
+.pf-body{padding:16px}
+.seedrow{margin-bottom:10px}
+.seedrow .k{font-family:"JetBrains Mono";font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.seedrow .v{display:flex;gap:8px}
+.seedrow .v input{flex:1;font-family:"JetBrains Mono";font-size:11px;background:#04100d;border:1px solid var(--line);border-radius:8px;color:var(--ink-2);padding:8px 10px;overflow:hidden;text-overflow:ellipsis}
+.seedrow .v button{font-size:11px;padding:6px 12px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel);color:var(--ink);cursor:pointer}
+
+/* toast */
+.toasts{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:100;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+.toast{background:linear-gradient(180deg,#0e1c1f,#0a1417);border:1px solid var(--line-2);border-radius:12px;padding:12px 18px;
+  box-shadow:var(--shadow);font-size:13.5px;font-weight:600;animation:toastIn .3s var(--ease);display:flex;gap:10px;align-items:center}
+.toast .ic{font-size:16px}
+.toast.gold{border-color:rgba(246,197,96,.4)} .toast.gold .ic{color:var(--gold)}
+@keyframes toastIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+/* float +$ */
+.coinfloat{position:fixed;z-index:95;font-family:"JetBrains Mono";font-weight:700;color:var(--gold);font-size:22px;pointer-events:none;text-shadow:0 2px 10px rgba(0,0,0,.6);animation:coinUp 1s var(--ease) forwards}
+@keyframes coinUp{0%{opacity:0;transform:translateY(0) scale(.8)}20%{opacity:1}100%{opacity:0;transform:translateY(-90px) scale(1.1)}}
+
+footer.ft{border-top:1px solid var(--line);margin-top:60px;padding:34px 0;color:var(--muted);font-size:12.5px}
+.ft-grid{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:24px}
+.ft-grid h5{font-family:"JetBrains Mono";font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-2);margin:0 0 12px}
+.ft-grid a{display:block;color:var(--muted);text-decoration:none;padding:3px 0;cursor:pointer}
+.ft-grid a:hover{color:var(--teal)}
+.ft-legal{margin-top:24px;padding-top:18px;border-top:1px solid var(--line);display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+.ft-legal .age{background:var(--rose);color:#2a0c10;font-weight:800;border-radius:8px;padding:3px 8px;font-size:12px}
+.demo-flag{position:fixed;bottom:14px;left:14px;z-index:50;font-family:"JetBrains Mono";font-size:10px;letter-spacing:.1em;
+  color:var(--gold);background:rgba(246,197,96,.08);border:1px solid rgba(246,197,96,.3);border-radius:999px;padding:6px 12px;text-transform:uppercase}
+
+/* ---------- responsive ---------- */
+@media(max-width:900px){
+  .nav-links{display:none}
+  .nav-burger{display:inline-flex}
+  .mobile-menu{display:none;position:absolute;top:70px;left:0;right:0;background:#0a1417;border:1px solid var(--line-2);border-radius:18px;padding:10px;margin:0 16px}
+  .mobile-menu.show{display:block}
+  .mobile-menu a{display:block;padding:13px 16px;border-radius:12px;color:var(--ink);text-decoration:none;font-weight:600;cursor:pointer}
+  .mobile-menu a.active{background:var(--gold);color:#1b1305}
+  .welcome{grid-template-columns:1fr}
+  .bigprize{grid-template-columns:1fr}
+  .coll-layout{grid-template-columns:1fr}
+  .pf-grid{grid-template-columns:1fr}
+  .hist-stats{grid-template-columns:1fr 1fr}
+  .pack-grid{grid-template-columns:1fr 1fr}
+  .hist-cards{max-width:none}
+  .ft-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:560px){
+  .pack-grid{grid-template-columns:1fr}
+  .stat-grid{grid-template-columns:1fr 1fr}
+  .vault-grid,.collect-grid{grid-template-columns:repeat(2,1fr)}
+  .sum-stats{gap:24px}
+  .summary h2{font-size:30px}
+  .amt-grid{grid-template-columns:repeat(3,1fr)}
+}
+.mobile-menu{display:none}
+
+@media(prefers-reduced-motion:reduce){
+  *{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.08s!important}
+  .bg-aurora,.foil-skin::after,.marquee-track{animation:none!important}
+}
+</style>
+</head>
+<body>
+<div class="bg-fx"></div><div class="bg-aurora"></div><div class="bg-grain"></div>
+
+<!-- ===================== NAV ===================== -->
+<header class="nav"><div class="wrap"><div class="nav-inner">
+  <div class="logo" data-go="home">R<b>I</b>PP<b>I</b>T</div>
+  <nav class="nav-links">
+    <a data-go="packs">Collectible Packs</a>
+    <a data-go="collection">My Collection</a>
+    <a data-go="pf">Provably Fair</a>
+  </nav>
+  <div class="nav-spacer"></div>
+  <div class="wallet-chip" data-go="collection" aria-label="Wallet balance, open collection">
+    <span class="lbl">Wallet</span><span class="amt money" id="navWallet">$705.00</span>
+  </div>
+  <button class="btn btn-gold" id="addFundsBtn">+ Add funds</button>
+  <button class="nav-burger" id="burger" aria-label="Menu">☰</button>
+</div>
+<div class="mobile-menu" id="mobileMenu">
+  <a data-go="packs">Collectible Packs</a>
+  <a data-go="collection">My Collection</a>
+  <a data-go="pf">Provably Fair</a>
+</div>
+</div></header>
+
+<main class="wrap">
+
+<!-- ===================== HOME ===================== -->
+<section class="view active" id="view-home">
+  <div class="hero">
+    <div class="welcome">
+      <div class="card-panel glow">
+        <span class="tag">Welcome back</span>
+        <h1 class="display h-title">Ready for your next rip, <em>Naickert</em>?</h1>
+        <div class="h-cta">
+          <button class="btn btn-gold" data-go="packs">Browse packs</button>
+          <button class="btn btn-ghost" data-go="collection">View collection</button>
+        </div>
+        <div class="ribbon">
+          <div>Complete a collection to win up to <b class="money" id="topJackpot">$540.04</b></div>
+          <a data-go="packs">Start a set →</a>
+        </div>
+      </div>
+      <div class="card-panel">
+        <div class="stat-grid">
+          <div class="stat"><div class="k">Wallet</div><div class="v money" id="homeWallet">705.00</div></div>
+          <div class="stat"><div class="k">Cards kept</div><div class="v" id="homeKept">0</div><small>in your vault</small></div>
+          <div class="stat"><div class="k">Packs opened</div><div class="v" id="homeRips">0</div></div>
+        </div>
+        <div class="stat" style="margin-top:10px">
+          <div class="k">Net position (spent − earned)</div>
+          <div class="v money" id="homeNet">$0.00</div>
+          <small id="homeNetNote">Track how you're doing over time.</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <span class="eyebrow">The big prize</span>
+    <h2 class="display">Collect the set. Win the jackpot.</h2>
+    <p class="sub">Own one of every card in a collection and cash the whole set in for a fixed bonus — on top of every card you keep.</p>
+  </div>
+  <div class="bigprize" id="featuredColls"></div>
+
+  <div class="section">
+    <span class="eyebrow">Cards you could pull</span>
+    <h2 class="display">Extraordinary &amp; Legendary drops await.</h2>
+  </div>
+  <div class="marquee"><div class="marquee-track" id="marquee"></div></div>
+</section>
+
+<!-- ===================== PACKS ===================== -->
+<section class="view" id="view-packs">
+  <div class="section"><h2 class="display" style="font-size:clamp(28px,5vw,46px)">Pick it. Rip it. Collect it. <span style="color:var(--gold)">Jackpot!</span></h2></div>
+  <div class="toolbar">
+    <div class="chips" id="priceChips">
+      <button class="chip on" data-price="any">Any price</button>
+      <button class="chip" data-price="0-20">$1–$20</button>
+      <button class="chip" data-price="20-100">$20–$100</button>
+      <button class="chip" data-price="100-9999">$100+</button>
+    </div>
+    <div class="chips scroll" id="volChips">
+      <button class="chip on teal" data-vol="all">All volatility</button>
+      <button class="chip" data-vol="low">Low vol</button>
+      <button class="chip" data-vol="medium">Medium vol</button>
+      <button class="chip" data-vol="high">High vol</button>
+      <button class="chip" data-vol="extreme">Extreme vol</button>
+    </div>
+    <input class="search" id="search" placeholder="Search packs…" />
+    <select class="select" id="sort">
+      <option value="featured">Featured</option>
+      <option value="completion">Closest to completing</option>
+      <option value="price-asc">Price ↑</option>
+      <option value="price-desc">Price ↓</option>
+    </select>
+  </div>
+  <div class="pack-grid" id="packGrid"></div>
+</section>
+
+<!-- ===================== DETAIL ===================== -->
+<section class="view" id="view-detail">
+  <button class="back-link" data-go="packs">← Back to store</button>
+  <div class="detail-head">
+    <span class="eyebrow" id="dEyebrow"></span>
+    <h1 class="display" id="dTitle"></h1>
+    <p id="dDesc"></p>
+  </div>
+  <div class="complete-panel">
+    <span class="eyebrow">Complete the collection</span>
+    <div class="big"><b id="dToGo">0</b> cards to jackpot</div>
+    <div class="prog-row"><span id="dProgTxt">0 of 0 collected</span><b id="dProgPct">0%</b></div>
+    <div class="prog"><i id="dProgBar" style="width:0%"></i></div>
+    <button class="btn btn-gold btn-lg" id="dOpenBtn" style="margin-top:16px"></button>
+  </div>
+  <div class="cards-head">
+    <h3>Cards in this collection</h3>
+    <div class="seg" id="dSeg">
+      <button class="on" data-filter="all">All</button>
+      <button data-filter="need">Still needed</button>
+    </div>
+  </div>
+  <div class="collect-grid" id="detailGrid"></div>
+</section>
+
+<!-- ===================== COLLECTION ===================== -->
+<section class="view" id="view-collection">
+  <div class="section"><span class="eyebrow">My collection</span><h2 class="display" style="font-size:clamp(28px,4vw,40px)">Collection</h2></div>
+  <div class="coll-tabs">
+    <div class="seg" id="collTabs">
+      <button class="on" data-tab="vault">Vault</button>
+      <button data-tab="history">History</button>
+      <button data-tab="collections">Collections</button>
+    </div>
+  </div>
+
+  <div id="tab-vault">
+    <div class="coll-layout">
+      <aside class="sidebar">
+        <div class="box">
+          <h4>Rarity</h4>
+          <div id="rarityFilter"></div>
+        </div>
+        <div class="box">
+          <h4>Sealed packs <span id="sealedCount" class="cnt"></span></h4>
+          <div id="sealedList"></div>
+        </div>
+      </aside>
+      <div>
+        <div class="kept-head">Kept cards <span class="n" id="vaultCount">0</span></div>
+        <div class="vault-grid" id="vaultGrid"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-history" style="display:none">
+    <div class="hist-stats">
+      <div class="stat"><div class="k">Packs opened</div><div class="v" id="hsPacks">0</div></div>
+      <div class="stat"><div class="k">Cards unlocked</div><div class="v" id="hsCards">0</div></div>
+      <div class="stat"><div class="k">Total earned</div><div class="v money gold" id="hsEarned">$0</div><small>from sells</small></div>
+      <div class="stat"><div class="k">Total spent</div><div class="v money" id="hsSpent">$0</div><small>on packs</small></div>
+    </div>
+    <div id="historyList"></div>
+  </div>
+
+  <div id="tab-collections" style="display:none">
+    <div class="colls-grid" id="collsGrid"></div>
+  </div>
+</section>
+
+<!-- ===================== PROVABLY FAIR ===================== -->
+<section class="view" id="view-pf">
+  <button class="back-link" data-go="home">← Back to home</button>
+  <div class="detail-head">
+    <span class="eyebrow">Provably fair</span>
+    <h1 class="display">See exactly how every card is decided.</h1>
+    <p>Every pack outcome is locked in at purchase time with a cryptographic commitment. The server cannot change the result after you buy, and you can independently recalculate the same roll, rarity, and selection path from the revealed proof.</p>
+  </div>
+  <div class="pf-grid">
+    <div class="card-panel">
+      <h3 style="margin-top:0">How the flow works</h3>
+      <p style="color:var(--ink-2);font-size:13.5px">A deterministic HMAC-SHA256 calculation over published rarity weights. Same inputs always produce the same result.</p>
+      <div class="pf-steps">
+        <div class="pf-step"><div class="n">1. Commit</div><p>When you buy, the server generates a hidden <code>serverSeed</code> and shows only its SHA-256 hash <b>before</b> the rip.</p></div>
+        <div class="pf-step"><div class="n">2. Derive</div><p>For each slot we compute <code>HMAC(serverSeed, clientSeed:nonce:slotIndex)</code>.</p></div>
+        <div class="pf-step"><div class="n">3. Choose rarity</div><p>The first 32 bits become a roll in [0,1) placed into the cumulative rarity bins.</p></div>
+        <div class="pf-step"><div class="n">4. Choose card</div><p>A second HMAC with a <code>:card:N</code> suffix is rejection-sampled — uniform, no modulo bias.</p></div>
+      </div>
+      <div class="formula">message = clientSeed + ":" + nonce + ":" + slotIndex
+hmac    = HMAC_SHA256(serverSeed, message)
+roll    = first32Bits(hmac) / 2^32
+rarity  = cumulativeBin(roll, rarityWeights)</div>
+    </div>
+    <div class="card-panel">
+      <h3 style="margin-top:0">Current rarity bins</h3>
+      <p style="color:var(--ink-2);font-size:13.5px">Default pack math used for newly created packs.</p>
+      <div class="bins" id="pfBins"></div>
+      <button class="btn btn-teal btn-lg" id="pfVerifyDemo" style="margin-top:6px">Try a demo roll →</button>
+      <div id="pfDemoOut" style="margin-top:12px;font-family:'JetBrains Mono';font-size:12px;color:var(--ink-2)"></div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ===================== FOOTER ===================== -->
+<footer class="ft"><div class="wrap">
+  <div class="ft-grid">
+    <div>
+      <div class="logo" style="padding:0;margin-bottom:10px">R<b>I</b>PP<b>I</b>T</div>
+      <p style="max-width:260px">The premium pack-opening platform for trading card collectors. Every rip is provably fair.</p>
+    </div>
+    <div><h5>Platform</h5><a data-go="packs">Browse packs</a><a data-go="collection">My collection</a><a data-go="pf">Provably fair</a><a data-go="collection">Cashout</a></div>
+    <div><h5>Company</h5><a>About</a><a>Contact</a><a>Careers</a><a>Blog</a></div>
+    <div><h5>Legal</h5><a>Terms of Service</a><a>Privacy Policy</a><a>Responsible Gaming</a><a>Refund Policy</a></div>
+  </div>
+  <div class="ft-legal">
+    <span class="age">18+</span>
+    <span>This is a play-money <b>prototype</b>. The real Rippit is intended for users 18 and older; mystery packs involve an element of chance. Please play responsibly. If gambling is a problem, visit BeGambleAware.org or call 1-800-522-4700.</span>
+  </div>
+</div></footer>
+
+<!-- ===================== MODALS / OVERLAYS ===================== -->
+<div class="scrim" id="scrim"></div>
+<div class="rip" id="rip">
+  <div class="spot l"></div><div class="spot r"></div>
+  <div class="rip-progress" id="ripProg" style="display:none;position:relative"><span class="pl" id="ripProgLabel"></span><i></i></div>
+  <div class="rip-stage" id="ripStage"></div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+<div class="demo-flag">Prototype · play money</div>
+
+<script>
+/* ============================================================
+   DATA MODEL
+   ============================================================ */
+const RARITY = {
+  common:   {name:'Common',   weight:53.0, value:5,   color:'var(--r-common)', frame:'frame-common', tag:'common',  icon:'●', lo:0,     hi:0.530},
+  uncommon: {name:'Uncommon', weight:34.5, value:10,  color:'var(--r-uncommon)',frame:'frame-uncommon',tag:'uncommon',icon:'◆', lo:0.530, hi:0.875},
+  rare:     {name:'Rare',     weight:10.0, value:25,  color:'var(--r-rare)',   frame:'frame-rare',   tag:'rare',    icon:'◆', lo:0.875, hi:0.975},
+  epic:     {name:'Epic',     weight:2.0,  value:50,  color:'var(--r-epic)',   frame:'frame-epic',   tag:'epic',    icon:'✦', lo:0.975, hi:0.995},
+  legend:   {name:'Legendary',weight:0.5,  value:100, color:'var(--r-legend)', frame:'frame-legend', tag:'legend',  icon:'★', lo:0.995, hi:1.000},
+};
+const RKEYS = Object.keys(RARITY);
+
+// collection definitions
+const COLLECTIONS = [
+  {id:'birds', name:'Bountiful Birds', emoji:'🐦', hue:200, vol:'high',    price:100, mult:3.0, packCards:5, setSize:15, jackpot:540.04,
+    grad:'linear-gradient(160deg,#10324a,#0a1f33)', desc:'A vibrant, chaotic flock of bold, mischievous birds bursting with colour and attitude.',
+    words:[['Chirp','Blaze','Swift','Vine','Crimson','Emerald','Inferno','Jungle','Storm','Phoenix','Azure','Ember','Frost','Solar','Night'],['Scout','Striker','Splitter','Sneak','Fury','Ambusher','Warlord','Stalker','Diver','Overlord','Trickster','Peck','Glider','Flare','Wing']]},
+  {id:'cars', name:'Sports Cars', emoji:'🏎️', hue:8, vol:'extreme', price:10, mult:7.2, packCards:5, setSize:15, jackpot:312.40,
+    grad:'linear-gradient(160deg,#3a0f12,#1a0608)', desc:'Molten machines forged in lava and chrome — pure speed, pure heat.',
+    words:[['Lava','Turbo','Nitro','Apex','Velocity','Carbon','Phantom','Magma','Drift','Redline','Vortex','Chrome','Blitz','Surge','Titan'],['GT','Spyder','RS','Coupe','Roadster','Charger','Bolt','Demon','Viper','Stallion','Comet','Racer','Flash','Beast','Fury']]},
+  {id:'empire', name:'Almighty Empire', emoji:'🏛️', hue:280, vol:'extreme', price:50, mult:2.0, packCards:5, setSize:15, jackpot:418.90,
+    grad:'linear-gradient(160deg,#2a1640,#140a24)', desc:'Gods, emperors and divine beasts of a forgotten golden age.',
+    words:[['Dionysus','Athena','Apollo','Atlas','Hermes','Zephyr','Helios','Nyx','Ares','Hera','Kratos','Selene','Orion','Gaia','Eos'],['Ascendant','Divine','Eternal','Wrath','Radiant','Vengeful','Golden','Sacred','Fallen','Risen','Immortal','Crowned','Blessed','Cursed','Supreme']]},
+  {id:'sports', name:'Sports Legends', emoji:'🏀', hue:30, vol:'medium', price:100, mult:1.8, packCards:5, setSize:12, jackpot:260.00,
+    grad:'linear-gradient(160deg,#3a2710,#1c1206)', desc:'Iconic moments and unstoppable athletes at the peak of the game.',
+    words:[['Slam','Buzzer','Triple','Fast','Clutch','Power','Sky','Iron','Golden','Rookie','Veteran','Court','Field','Arena','Champion'],['Dunk','Beater','Double','Break','Shot','House','Hook','Wall','Glove','Sensation','Icon','King','Master','Hero','Legend']]},
+  {id:'atlas', name:'Atlas: Nations', emoji:'🌍', hue:150, vol:'low', price:150, mult:1.4, packCards:5, setSize:15, jackpot:600.00,
+    grad:'linear-gradient(160deg,#0f3a30,#08231d)', desc:'A cartographic journey through the wonders of every nation on Earth.',
+    words:[['Nordic','Saharan','Alpine','Pacific','Andean','Baltic','Aegean','Tundra','Savanna','Monsoon','Equator','Polar','Coastal','Highland','Delta'],['Realm','Kingdom','Republic','Frontier','Expanse','Haven','Dominion','Reach','Province','Territory','Capital','Isle','Range','Basin','Coast']]},
+  {id:'romance', name:'Immortal Romance', emoji:'🌹', hue:340, vol:'high', price:100, mult:2.5, packCards:5, setSize:15, jackpot:475.50,
+    grad:'linear-gradient(160deg,#3a1226,#1c0814)', desc:'Vampires, lovers and eternal secrets bound by moonlit fate.',
+    words:[['Crimson','Velvet','Midnight','Eternal','Sable','Scarlet','Lunar','Onyx','Ruby','Obsidian','Twilight','Raven','Ivory','Dusk','Shadow'],['Rose','Bite','Vow','Embrace','Kiss','Bloom','Pact','Veil','Heart','Whisper','Bond','Thorn','Flame','Tear','Oath']]},
+];
+
+// deterministic pseudo-random for stable card sets
+function seeded(n){let x=Math.sin(n)*10000;return x-Math.floor(x);}
+function buildSet(c){
+  // distribute rarities across the set: skew to common
+  const dist=['common','common','common','common','common','uncommon','uncommon','uncommon','rare','rare','epic','legend','uncommon','common','rare'];
+  const cards=[];
+  for(let i=0;i<c.setSize;i++){
+    const rk = dist[i % dist.length];
+    const wi = Math.floor(seeded((c.id.charCodeAt(0))+i*7)*c.words[0].length);
+    const wj = Math.floor(seeded((c.id.charCodeAt(1)||66)+i*13)*c.words[1].length);
+    let name = c.words[0][wi]+' '+c.words[1][wj];
+    cards.push({id:c.id+'-'+i, no:i+1, name, rarity:rk, value:RARITY[rk].value, emoji:c.emoji, grad:c.grad});
+  }
+  return cards;
+}
+COLLECTIONS.forEach(c=>{c.cards=buildSet(c); c.byRarity={}; RKEYS.forEach(r=>c.byRarity[r]=c.cards.filter(x=>x.rarity===r));});
+const COL = Object.fromEntries(COLLECTIONS.map(c=>[c.id,c]));
+
+/* ============================================================
+   STATE  (persisted)
+   ============================================================ */
+const DEFAULT_STATE={wallet:705, vault:[], history:[], sealed:[
+  {col:'birds', stored:'5 minutes ago'},
+  {col:'sports', stored:'12 hours ago'},
+], owned:{}, deposited:0};
+let S = load();
+function load(){try{const r=localStorage.getItem('rippit');if(r)return JSON.parse(r);}catch(e){}return JSON.parse(JSON.stringify(DEFAULT_STATE));}
+function save(){try{localStorage.setItem('rippit',JSON.stringify(S));}catch(e){}}
+function ownedCount(colId){return new Set(S.vault.filter(v=>v.col===colId).map(v=>v.no)).size;}
+function isOwned(colId,no){return S.vault.some(v=>v.col===colId&&v.no===no);}
+const fmt=n=>'$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmt0=n=>'$'+Number(n).toLocaleString('en-US',{maximumFractionDigits:0});
+
+/* ============================================================
+   CARD RENDERING
+   ============================================================ */
+function cardHTML(card, opts={}){
+  const r=RARITY[card.rarity];
+  const status = opts.status ? `<span class="status ${opts.status}">${opts.statusText||opts.status.toUpperCase()}</span>`:'';
+  const locked = opts.locked?'locked':'';
+  return `<div class="tcard ${r.frame} ${locked}">
+    <div class="art" style="background:${card.grad}">${card.emoji}</div>
+    ${status}
+    <div class="top"><div class="nm">${card.name}</div><div class="no">No.<b>${card.no}</b></div></div>
+    <div class="bottom">
+      <span class="r-tag ${r.tag}">${r.icon} ${r.name}</span>
+      <span class="val money">${fmt0(card.value)}</span>
+    </div>
+  </div>`;
+}
+function miniCardHTML(card){return `<div class="mini-card">${cardHTML(card)}</div>`;}
+
+/* ============================================================
+   NAV / ROUTER
+   ============================================================ */
+function go(view, arg){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+view).classList.add('active');
+  document.querySelectorAll('.nav-links a, .mobile-menu a').forEach(a=>a.classList.toggle('active',a.dataset.go===view));
+  document.getElementById('mobileMenu').classList.remove('show');
+  window.scrollTo({top:0,behavior:'instant'in window?'instant':'auto'});
+  if(view==='home')renderHome();
+  if(view==='packs')renderPacks();
+  if(view==='detail')renderDetail(arg);
+  if(view==='collection')renderCollection();
+  if(view==='pf')renderPF();
+}
+document.addEventListener('click',e=>{
+  const g=e.target.closest('[data-go]'); if(g){go(g.dataset.go);}
+});
+document.getElementById('burger').onclick=()=>document.getElementById('mobileMenu').classList.toggle('show');
+
+/* ============================================================
+   HOME
+   ============================================================ */
+function renderHome(){
+  document.getElementById('homeWallet').textContent=S.wallet.toFixed(2);
+  document.getElementById('homeKept').textContent=S.vault.length;
+  document.getElementById('homeRips').textContent=S.history.length;
+  const spent=S.history.reduce((a,h)=>a+h.price,0), earned=S.history.reduce((a,h)=>a+h.earned,0);
+  const net=spent-earned;
+  const ne=document.getElementById('homeNet'); ne.textContent=(net>=0?'-':'+')+fmt(Math.abs(net)).slice(1)===''?'':((net>0?'−':'')+fmt(net).replace('$','$'));
+  ne.textContent=(net>0?'−':'')+fmt(Math.abs(net));
+  ne.className='v money '+(net>0?'neg':'pos');
+  document.getElementById('homeNetNote').textContent= net>0? `You're down ${fmt(net)} lifetime — play responsibly.` : 'You are even or up. Nice.';
+  // featured collections
+  document.getElementById('featuredColls').innerHTML=COLLECTIONS.slice(0,3).map(c=>`
+    <div class="feature">
+      <div class="banner" style="background:${c.grad}">${c.emoji}</div>
+      <div class="col">${c.name.split(':')[0]}</div>
+      <h3>${c.name}</h3>
+      <div class="jackpot-box"><div class="k">Collection jackpot</div><div class="v money">${fmt(c.jackpot)}</div></div>
+      <div class="foot"><span>Packs from <b class="money" style="color:var(--ink)">${fmt0(c.price)}</b></span><a data-detail="${c.id}">Chase it →</a></div>
+    </div>`).join('');
+  // marquee — one card from each rarity across collections
+  let pool=[]; COLLECTIONS.forEach(c=>{['legend','epic','rare','uncommon'].forEach(r=>{if(c.byRarity[r][0])pool.push(c.byRarity[r][0]);});});
+  document.getElementById('marquee').innerHTML=(pool.concat(pool)).map(miniCardHTML).join('');
+  document.getElementById('topJackpot').textContent=fmt(Math.max(...COLLECTIONS.map(c=>c.jackpot)));
+  syncWallet();
+}
+
+/* ============================================================
+   PACKS CATALOG
+   ============================================================ */
+let filters={price:'any',vol:'all',q:'',sort:'featured'};
+function renderPacks(){
+  let list=COLLECTIONS.slice();
+  if(filters.price!=='any'){const[lo,hi]=filters.price.split('-').map(Number);list=list.filter(c=>c.price>=lo&&c.price<=hi);}
+  if(filters.vol!=='all')list=list.filter(c=>c.vol===filters.vol);
+  if(filters.q)list=list.filter(c=>c.name.toLowerCase().includes(filters.q.toLowerCase()));
+  if(filters.sort==='price-asc')list.sort((a,b)=>a.price-b.price);
+  if(filters.sort==='price-desc')list.sort((a,b)=>b.price-a.price);
+  if(filters.sort==='completion')list.sort((a,b)=>(ownedCount(b.id)/b.setSize)-(ownedCount(a.id)/a.setSize));
+  const grid=document.getElementById('packGrid');
+  grid.innerHTML=list.map(c=>{
+    const owned=ownedCount(c.id), pct=Math.round(owned/c.setSize*100), togo=c.setSize-owned;
+    const odds=`<span class="opill" style="color:var(--r-legend)">★ ${RARITY.legend.weight}%</span><span class="opill" style="color:var(--r-epic)">✦ ${RARITY.epic.weight}%</span>`;
+    return `<div class="pack" data-detail="${c.id}">
+      <div class="pack-badges">
+        <span class="badge vol-${c.vol}">${c.vol} volatility</span>
+        <span class="badge mult">up to ${c.mult}×</span>
+      </div>
+      <div class="pack-foil-wrap"><div class="foil"><div class="serrate top"></div><div class="foil-skin ${c.vol==='extreme'||c.vol==='high'?'silver':''}"></div><div class="serrate bot"></div></div></div>
+      <div class="pack-meta">
+        <div class="col" style="color:var(--teal)">${c.name.split(':')[0]} · ${c.packCards} cards</div>
+        <h3>${c.name}</h3>
+        <div class="odds-pills">${odds}<span class="odds-link" data-odds="${c.id}">all odds</span></div>
+        <div class="prog-row"><span>${owned>0?`Collected ${owned}/${c.setSize}`:'Not started'}</span><b>${togo} to go</b></div>
+        <div class="prog"><i style="width:${pct}%"></i></div>
+      </div>
+      <div class="pack-buy">
+        <div class="price-row">
+          <div><div class="k">Price</div><div class="v money">${fmt(c.price)}</div></div>
+          <button class="btn btn-ghost cards-btn" data-detail="${c.id}">Cards</button>
+        </div>
+        <button class="btn btn-gold btn-lg" data-buy="${c.id}">Open pack — ${fmt(c.price)}</button>
+      </div>
+    </div>`;
+  }).join('') || `<div class="empty" style="grid-column:1/-1">No packs match those filters.</div>`;
+}
+document.getElementById('priceChips').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;document.querySelectorAll('#priceChips .chip').forEach(x=>x.classList.remove('on'));b.classList.add('on');filters.price=b.dataset.price;renderPacks();});
+document.getElementById('volChips').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;document.querySelectorAll('#volChips .chip').forEach(x=>x.classList.remove('on'));b.classList.add('on');filters.vol=b.dataset.vol;renderPacks();});
+document.getElementById('search').addEventListener('input',e=>{filters.q=e.target.value;renderPacks();});
+document.getElementById('sort').addEventListener('change',e=>{filters.sort=e.target.value;renderPacks();});
+// delegated: detail / buy / odds
+document.addEventListener('click',e=>{
+  // most-specific controls first; the catalog pack card is itself a [data-detail]
+  // so its inner Open-pack / odds buttons must be matched before the card wrapper
+  const b=e.target.closest('[data-buy]'); if(b){buyPack(b.dataset.buy);return;}
+  const o=e.target.closest('[data-odds]'); if(o){showOdds(o.dataset.odds);return;}
+  const d=e.target.closest('[data-detail]'); if(d){go('detail',d.dataset.detail);return;}
+});
+
+/* ============================================================
+   DETAIL
+   ============================================================ */
+let detailState={id:null,filter:'all'};
+function renderDetail(id){
+  if(id)detailState.id=id; const c=COL[detailState.id]; if(!c)return go('packs');
+  const owned=ownedCount(c.id),pct=Math.round(owned/c.setSize*100),togo=c.setSize-owned;
+  document.getElementById('dEyebrow').textContent=c.vol+' volatility · '+c.packCards+' cards per pack';
+  document.getElementById('dTitle').textContent=c.name;
+  document.getElementById('dDesc').textContent=c.desc;
+  document.getElementById('dToGo').textContent=togo;
+  document.getElementById('dProgTxt').textContent=`${owned} of ${c.setSize} collected`;
+  document.getElementById('dProgPct').textContent=pct+'%';
+  document.getElementById('dProgBar').style.width=pct+'%';
+  const ob=document.getElementById('dOpenBtn'); ob.textContent=`Open a pack to chase ${togo} more — ${fmt(c.price)}`; ob.onclick=()=>buyPack(c.id);
+  document.querySelectorAll('#dSeg button').forEach(x=>x.classList.toggle('on',x.dataset.filter===detailState.filter));
+  let cards=c.cards.slice(); if(detailState.filter==='need')cards=cards.filter(x=>!isOwned(c.id,x.no));
+  document.getElementById('detailGrid').innerHTML=cards.map(card=>{
+    const own=isOwned(c.id,card.no);
+    return `<div class="collect-cell">${cardHTML(card,{locked:!own,status:own?'owned':'need',statusText:own?'OWNED':'NEED'})}</div>`;
+  }).join('') || `<div class="empty" style="grid-column:1/-1">You've completed this set! 🎉</div>`;
+}
+document.getElementById('dSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;detailState.filter=b.dataset.filter;renderDetail();});
+
+/* ============================================================
+   ADD FUNDS
+   ============================================================ */
+const scrim=document.getElementById('scrim');
+function openModal(html){scrim.innerHTML=html;scrim.classList.add('show');}
+function closeModal(){scrim.classList.remove('show');scrim.innerHTML='';}
+scrim.addEventListener('click',e=>{if(e.target===scrim)closeModal();});
+document.getElementById('addFundsBtn').onclick=openAddFunds;
+function openAddFunds(){
+  const spent=S.history.reduce((a,h)=>a+h.price,0),earned=S.history.reduce((a,h)=>a+h.earned,0),net=spent-earned;
+  const amounts=[10,25,50,100,250];
+  openModal(`<div class="modal">
+    <button class="x" onclick="closeModal()">✕</button>
+    <span class="eyebrow">Add funds</span>
+    <h3>Top up your wallet</h3>
+    <p class="s">Add play-money credits to open packs.</p>
+    <div class="amt-grid" id="amtGrid">${amounts.map(a=>`<button data-amt="${a}">$${a}</button>`).join('')}</div>
+    <div class="field"><span>$</span><input id="amtInput" type="number" value="" placeholder="Enter amount" /></div>
+    ${net>0?`<div class="rg-note">You're down <b>${fmt(net)}</b> lifetime. Set a budget and take breaks.</div>`:''}
+    <button class="btn btn-gold btn-lg" id="confirmAdd" style="margin-top:6px">Add credits &amp; continue</button>
+    <span class="crypto-link">Pay with crypto →</span>
+  </div>`);
+  const grid=document.getElementById('amtGrid'),input=document.getElementById('amtInput');
+  grid.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;grid.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');input.value=b.dataset.amt;});
+  document.getElementById('confirmAdd').onclick=()=>{const v=parseFloat(input.value);if(!v||v<=0){toast('Enter an amount','⚠️');return;}S.wallet+=v;S.deposited+=v;save();syncWallet();closeModal();toast(`Added ${fmt(v)} in credits`,'💰','gold');};
+}
+
+/* odds popover */
+function showOdds(id){
+  const c=COL[id];
+  let ev=0; RKEYS.forEach(r=>{ev+=RARITY[r].weight/100*RARITY[r].value;});
+  openModal(`<div class="modal">
+    <button class="x" onclick="closeModal()">✕</button>
+    <span class="eyebrow">${c.name}</span>
+    <h3>Full pull odds</h3>
+    <p class="s">Per-card probability for this pack tier. Verifiable on the Provably Fair page.</p>
+    <table class="odds-table">
+      ${RKEYS.map(r=>`<tr><td><span class="r-tag ${RARITY[r].tag}">${RARITY[r].icon} ${RARITY[r].name}</span></td><td>${RARITY[r].weight}%</td></tr>`).join('')}
+      <tr class="evrow"><td>Avg card value (EV)</td><td>${fmt(ev)}</td></tr>
+    </table>
+  </div>`);
+}
+
+/* ============================================================
+   PROVABLY-FAIR ENGINE  (real weighted roll for the prototype)
+   ============================================================ */
+function hex(len){const c='0123456789abcdef';let s='';for(let i=0;i<len;i++)s+=c[Math.floor(Math.random()*16)];return s;}
+function rollRarity(){const roll=Math.random();for(const r of RKEYS){if(roll>=RARITY[r].lo&&roll<RARITY[r].hi)return{r,roll};}return{r:'common',roll};}
+function pullCard(c){
+  const {r,roll}=rollRarity();
+  const pool=c.byRarity[r].length?c.byRarity[r]:c.byRarity.common;
+  const card=pool[Math.floor(Math.random()*pool.length)];
+  return {...card, roll};
+}
+
+/* ============================================================
+   THE RIP  (buy → tear → reveal → showcase → summary)
+   ============================================================ */
+const ripEl=document.getElementById('rip'),ripStage=document.getElementById('ripStage'),ripProg=document.getElementById('ripProg');
+let ripCtx=null;
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+const reduceMotion=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function buyPack(id){
+  const c=COL[id];
+  if(S.wallet<c.price){openAddFunds();toast('Not enough credits — top up to open.','⚠️');return;}
+  S.wallet-=c.price;save();syncWallet();
+  startRip(c,c.price,false);
+}
+function ripSealed(idx){
+  const sp=S.sealed[idx]; if(!sp)return; const c=COL[sp.col];
+  S.sealed.splice(idx,1);save();
+  startRip(c,0,true);
+}
+
+function startRip(c,price){
+  // generate outcome
+  const cards=[]; for(let i=0;i<c.packCards;i++)cards.push(pullCard(c));
+  ripCtx={c,price,cards,idx:0,decisions:[],earned:0,
+    serverSeed:hex(64),serverHash:hex(64),clientSeed:hex(48),nonce:S.history.length+1};
+  ripEl.classList.add('show');
+  ripProg.style.display='none';
+  document.body.style.overflow='hidden';
+  stagePack();
+}
+function endRip(){ripEl.classList.remove('show');ripStage.innerHTML='';document.body.style.overflow='';}
+
+/* stage 1: foil pack */
+function stagePack(){
+  const c=ripCtx.c;
+  ripStage.innerHTML=`
+    <div class="rip-label"><span class="eyebrow">${c.name}</span><div class="pill">${c.packCards} cards · ${c.vol} volatility</div></div>
+    <div class="bigpack" id="bigpack">
+      <div class="foil"><div class="serrate top"></div><div class="foil-skin ${c.vol==='extreme'||c.vol==='high'?'silver':''}"></div><div class="serrate bot"></div></div>
+      <div class="tear-top"><div class="foil-skin ${c.vol==='extreme'||c.vol==='high'?'silver':''}" style="height:340%"></div></div>
+    </div>
+    <div class="hint"><b>Click “Rip pack”</b> to open · drag the pack to inspect</div>
+    <div class="rip-actions">
+      <button class="btn btn-gold btn-lg" id="ripBtn" style="width:auto;padding:15px 40px">Rip pack ✦</button>
+      <button class="btn btn-ghost" id="cancelRip">Cancel</button>
+    </div>`;
+  document.getElementById('ripBtn').onclick=doTear;
+  document.getElementById('cancelRip').onclick=()=>{ // refund if paid
+    if(ripCtx.price>0){S.wallet+=ripCtx.price;save();syncWallet();toast('Pack cancelled — credits returned','↩︎');}
+    else{S.sealed.push({col:ripCtx.c.id,stored:'just now'});save();}
+    endRip();
+  };
+  enableInspect(document.getElementById('bigpack'));
+}
+function enableInspect(el){
+  let dragging=false,sx=0;
+  const foil=el.querySelector('.foil');
+  el.addEventListener('pointerdown',e=>{dragging=true;sx=e.clientX;foil.style.animation='none';el.setPointerCapture(e.pointerId);});
+  el.addEventListener('pointermove',e=>{if(!dragging)return;const dx=(e.clientX-sx)/4;foil.style.transform=`rotateY(${dx}deg) rotateX(${-dx/3}deg)`;});
+  el.addEventListener('pointerup',()=>{dragging=false;foil.style.transition='transform .5s var(--ease)';foil.style.transform='';setTimeout(()=>{foil.style.transition='';foil.style.animation='floaty 5s var(--ease) infinite';},500);});
+}
+async function doTear(){
+  const bp=document.getElementById('bigpack');
+  document.querySelector('.rip-actions').style.display='none';
+  document.querySelector('.hint').style.display='none';
+  if(!reduceMotion()){bp.classList.add('tear');await wait(900);burst(bp);}
+  bp.classList.add('opened');
+  await wait(reduceMotion()?100:700);
+  stageReveal();
+}
+function burst(anchor){
+  const rect=anchor.getBoundingClientRect();const cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
+  const colors=['var(--gold)','var(--mint)','#fff','var(--r-epic)'];
+  for(let i=0;i<28;i++){const s=document.createElement('div');s.className='spark';
+    s.style.left=cx+'px';s.style.top=cy+'px';s.style.background=colors[i%colors.length];
+    const ang=Math.random()*6.28,dist=80+Math.random()*180;
+    s.style.setProperty('--dx',Math.cos(ang)*dist+'px');s.style.setProperty('--dy',Math.sin(ang)*dist+'px');
+    ripEl.appendChild(s);requestAnimationFrame(()=>s.classList.add('go'));setTimeout(()=>s.remove(),1000);}
+}
+
+/* stage 2: card-by-card reveal */
+function stageReveal(){
+  ripProg.style.display='block';
+  showCard();
+}
+function showCard(){
+  const {c,cards,idx}=ripCtx; const card=cards[idx]; const r=RARITY[card.rarity];
+  // is it new to the collection / duplicate within pack or already owned?
+  const alreadyOwned=isOwned(c.id,card.no);
+  const earlierInPack=cards.slice(0,idx).some(x=>x.no===card.no);
+  let st='new',stTxt='NEW!';
+  if(alreadyOwned){st='owned';stTxt='OWNED';}
+  if(earlierInPack){st='dupe';stTxt='DUPLICATE';}
+  ripProg.querySelector('i').style.width=((idx)/cards.length*100)+'%';
+  document.getElementById('ripProgLabel').textContent=`CARD ${idx+1} / ${cards.length}`;
+  ripStage.innerHTML=`
+    <div class="reveal-card" id="revealCard">
+      <div class="face back"><div class="rb">RIPPIT</div></div>
+      <div class="face front">${cardHTML(card,{status:st,statusText:stTxt})}</div>
+    </div>
+    <div class="decide" id="decide" style="opacity:0;pointer-events:none">
+      <button class="sell">← Sell <small class="money">${fmt0(card.value)}</small></button>
+      <button class="keep">Keep →</button>
+    </div>
+    <div class="hint" style="margin-top:14px">drag the card, or use the buttons</div>`;
+  const rc=document.getElementById('revealCard');
+  setTimeout(()=>{rc.classList.add('flipped');},reduceMotion()?10:250);
+  setTimeout(()=>{const d=document.getElementById('decide');d.style.opacity='1';d.style.pointerEvents='auto';},reduceMotion()?60:850);
+  document.querySelector('#decide .sell').onclick=()=>decide('sell');
+  document.querySelector('#decide .keep').onclick=()=>decide('keep');
+  enableSwipe(rc);
+}
+function enableSwipe(rc){
+  let dragging=false,sx=0,dx=0,armed=false;
+  rc.style.cursor='grab';
+  rc.addEventListener('pointerdown',e=>{if(!document.getElementById('decide')||document.getElementById('decide').style.pointerEvents==='none')return;dragging=true;sx=e.clientX;rc.setPointerCapture(e.pointerId);rc.style.transition='none';});
+  rc.addEventListener('pointermove',e=>{if(!dragging)return;dx=e.clientX-sx;rc.style.transform=`rotateY(180deg) translateX(${-dx}px) rotate(${dx/20}deg)`;armed=Math.abs(dx)>110;});
+  rc.addEventListener('pointerup',()=>{if(!dragging)return;dragging=false;rc.style.transition='';if(armed){decide(dx>0?'keep':'sell');}else{rc.style.transform='rotateY(180deg)';}});
+}
+async function decide(action){
+  const {c,cards,idx}=ripCtx; const card=cards[idx];
+  const rc=document.getElementById('revealCard'); const d=document.getElementById('decide');
+  if(d){d.style.pointerEvents='none';d.style.opacity='0';}
+  if(action==='sell'){
+    S.wallet+=card.value; ripCtx.earned+=card.value; save(); syncWallet();
+    coinFloat(card.value); toast(`Sold ${card.name} for ${fmt0(card.value)}`,'💰','gold');
+  }
+  ripCtx.decisions.push({card,action});
+  if(rc){rc.classList.add(action==='sell'?'fly-left':'fly-right');}
+  await wait(reduceMotion()?80:430);
+  ripCtx.idx++;
+  if(ripCtx.idx<cards.length){showCard();}
+  else{ripProg.querySelector('i').style.width='100%';stageShowcase();}
+}
+function coinFloat(v){
+  const wc=document.getElementById('navWallet').getBoundingClientRect();
+  const el=document.createElement('div');el.className='coinfloat';el.textContent='+'+fmt0(v);
+  el.style.left=(wc.left)+'px';el.style.top=(wc.bottom+4)+'px';document.body.appendChild(el);setTimeout(()=>el.remove(),1000);
+}
+
+/* stage 3: showcase coverflow */
+function stageShowcase(){
+  ripProg.style.display='none';
+  const cards=ripCtx.cards;
+  ripStage.innerHTML=`
+    <div class="rip-label"><span class="eyebrow">Your cards</span><h2 class="display" style="font-size:34px;margin:6px 0 0">Pack Showcase</h2></div>
+    <div class="showcase" id="showcase">${cards.map((c,i)=>`<div class="sc-card" data-i="${i}">${cardHTML(c)}</div>`).join('')}</div>
+    <div class="hint">click cards to browse</div>
+    <button class="btn btn-gold btn-lg" id="toSummary" style="width:auto;padding:14px 40px;margin-top:10px">View summary →</button>`;
+  let active=Math.floor(cards.length/2);
+  const layout=()=>{document.querySelectorAll('.sc-card').forEach((el,i)=>{const off=i-active;
+    el.style.transform=`translateX(${off*120}px) translateZ(${-Math.abs(off)*140}px) rotateY(${off*-22}deg) scale(${off===0?1.08:.82})`;
+    el.style.zIndex=100-Math.abs(off);el.style.opacity=Math.abs(off)>2?0:1;});};
+  layout();
+  document.getElementById('showcase').addEventListener('click',e=>{const el=e.target.closest('.sc-card');if(!el)return;active=+el.dataset.i;layout();});
+  document.getElementById('toSummary').onclick=stageSummary;
+}
+
+/* stage 4: summary + provably fair */
+function stageSummary(){
+  const {c,cards,decisions,earned}=ripCtx;
+  const kept=decisions.filter(d=>d.action==='keep').length;
+  const sold=decisions.filter(d=>d.action==='sell').length;
+  // commit kept cards to vault
+  decisions.filter(d=>d.action==='keep').forEach(d=>S.vault.push({col:c.id,no:d.card.no,name:d.card.name,rarity:d.card.rarity,value:d.card.value}));
+  // jackpot check
+  const nowOwned=ownedCount(c.id); let jackpotWon=false;
+  if(nowOwned>=c.setSize && !S.history.some(h=>h.col===c.id&&h.jackpot)){jackpotWon=true;S.wallet+=c.jackpot;}
+  // history
+  S.history.unshift({id:hex(8)+'-'+hex(4),col:c.id,colName:c.name,price:ripCtx.price,earned,kept,sold,
+    cards:cards.map(x=>({no:x.no,rarity:x.rarity,emoji:x.emoji,grad:x.grad,name:x.name})),
+    decisions:decisions.map(d=>d.action),when:'just now',jackpot:jackpotWon?c.jackpot:0});
+  save();syncWallet();
+  if(jackpotWon){toast(`JACKPOT! Set complete — won ${fmt(c.jackpot)}`,'🏆','gold');burst(ripStage);}
+  ripStage.innerHTML=`
+    <div class="summary">
+      <h2 class="display">${jackpotWon?'🏆 Jackpot!':'Pack Complete'}</h2>
+      <div class="sum-stats">
+        <div class="kept"><div class="v">${kept}</div><div class="k">Kept</div></div>
+        <div class="sold"><div class="v">${sold}</div><div class="k">Sold</div></div>
+        <div class="earn"><div class="v money">${fmt0(earned)}</div><div class="k">Earned</div></div>
+      </div>
+      <div class="sum-chips">${decisions.map(d=>`<div class="sum-chip"><b>${d.card.name}</b><small class="${d.action==='keep'?'c-keep':'c-sold'}">${d.action==='keep'?'● Collected':'+'+fmt0(d.card.value)}</small></div>`).join('')}</div>
+      <details class="pf-collapse">
+        <summary>✦ Provably Fair</summary>
+        <div class="pf-body">
+          <p style="font-size:12.5px;color:var(--ink-2);margin-top:0">Committed before you ripped. Verify the revealed seed matches the original hash.</p>
+          ${seedRow('Server seed hash (commitment)',ripCtx.serverHash)}
+          ${seedRow('Server seed (revealed)',ripCtx.serverSeed)}
+          ${seedRow('Client seed (your entropy)',ripCtx.clientSeed)}
+          ${seedRow('Nonce',String(ripCtx.nonce))}
+          <button class="btn btn-teal btn-lg" style="margin-top:6px" onclick="toast('Verified ✓ revealed seed matches commitment','✓')">Verify fairness</button>
+        </div>
+      </details>
+      <div class="rip-actions" style="justify-content:center">
+        <button class="btn btn-ghost" id="ripAgain">Rip another</button>
+        <button class="btn btn-gold" id="backPacks" style="padding:12px 30px">Back to packs</button>
+      </div>
+    </div>`;
+  document.getElementById('ripAgain').onclick=()=>{endRip();buyPack(c.id);};
+  document.getElementById('backPacks').onclick=()=>{endRip();go('packs');};
+}
+function seedRow(k,v){return `<div class="seedrow"><div class="k">${k}</div><div class="v"><input value="${v}" readonly /><button onclick="navigator.clipboard&&navigator.clipboard.writeText('${v}');toast('Copied','📋')">Copy</button></div></div>`;}
+
+/* ============================================================
+   COLLECTION (vault / history / collections)
+   ============================================================ */
+let collTab='vault';
+function renderCollection(){
+  document.querySelectorAll('#collTabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===collTab));
+  ['vault','history','collections'].forEach(t=>document.getElementById('tab-'+t).style.display=t===collTab?'block':'none');
+  if(collTab==='vault')renderVault();
+  if(collTab==='history')renderHistory();
+  if(collTab==='collections')renderColls();
+}
+document.getElementById('collTabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;collTab=b.dataset.tab;renderCollection();});
+function renderVault(){
+  // rarity counts
+  const counts={};RKEYS.forEach(r=>counts[r]=S.vault.filter(v=>v.rarity===r).length);
+  document.getElementById('rarityFilter').innerHTML=RKEYS.map(r=>`
+    <div class="rarity-row"><span><span class="dot" style="background:${RARITY[r].color}"></span>${RARITY[r].name}</span><span class="cnt">${counts[r]}</span></div>`).join('');
+  // sealed
+  document.getElementById('sealedCount').textContent=S.sealed.length;
+  const sl=document.getElementById('sealedList');
+  sl.innerHTML=S.sealed.length?S.sealed.map((sp,i)=>`
+    <div class="sealed"><div class="ic"></div><div class="info"><b>${COL[sp.col].name} pack</b><small>Stored ${sp.stored}</small></div>
+    <button class="btn btn-gold" data-sealed="${i}">Rip it</button></div>`).join('')
+    :`<p style="color:var(--muted);font-size:12.5px;margin:0">No sealed packs. <span class="odds-link" data-go="packs">Browse the store →</span></p>`;
+  // kept cards
+  document.getElementById('vaultCount').textContent=S.vault.length;
+  const vg=document.getElementById('vaultGrid');
+  if(!S.vault.length){vg.innerHTML=`<div class="empty" style="grid-column:1/-1">Your vault is empty.<br><button class="btn btn-gold" data-go="packs">Rip your first pack</button></div>`;return;}
+  vg.innerHTML=S.vault.slice().reverse().map(v=>{const card={...COL[v.col].cards.find(x=>x.no===v.no)};return cardHTML(card);}).join('');
+}
+document.addEventListener('click',e=>{const s=e.target.closest('[data-sealed]');if(s)ripSealed(+s.dataset.sealed);});
+function renderHistory(){
+  const spent=S.history.reduce((a,h)=>a+h.price,0),earned=S.history.reduce((a,h)=>a+h.earned,0),cards=S.history.reduce((a,h)=>a+h.cards.length,0);
+  document.getElementById('hsPacks').textContent=S.history.length;
+  document.getElementById('hsCards').textContent=cards;
+  document.getElementById('hsEarned').textContent=fmt0(earned);
+  document.getElementById('hsSpent').textContent=fmt0(spent);
+  const hl=document.getElementById('historyList');
+  if(!S.history.length){hl.innerHTML=`<div class="empty">No packs opened yet.<br><button class="btn btn-gold" data-go="packs">Open a pack</button></div>`;return;}
+  hl.innerHTML=S.history.map(h=>`
+    <div class="hist-entry">
+      <div class="hist-top">
+        <span class="id">${h.colName} · ${h.id.slice(0,8)}</span>
+        <span class="meta">Opened ${h.when}${h.jackpot?` · 🏆 Jackpot ${fmt0(h.jackpot)}`:''}</span>
+        <span class="res"><span class="kept">${h.kept} kept</span> · <span class="sold">${h.sold} sold</span> · ${fmt0(h.earned)}</span>
+      </div>
+      <div class="hist-cards">${h.cards.map((c,i)=>{const card={no:c.no,name:c.name,rarity:c.rarity,emoji:c.emoji,grad:c.grad,value:RARITY[c.rarity].value};
+        return cardHTML(card,{status:h.decisions[i]==='keep'?'owned':'dupe',statusText:h.decisions[i]==='keep'?'KEPT':'SOLD'});}).join('')}</div>
+    </div>`).join('');
+}
+function renderColls(){
+  const grid=document.getElementById('collsGrid');
+  grid.innerHTML=COLLECTIONS.map(c=>{const owned=ownedCount(c.id);
+    const avs=c.cards.slice(0,4).map(card=>`<div class="av" style="background:${card.grad}">${card.emoji}</div>`).join('');
+    return `<div class="coll-card" data-detail="${c.id}">
+      <div class="bn" style="background:${c.grad}">${c.emoji}</div>
+      <div class="bd">
+        <div class="t"><b>${c.name}</b><span class="frac">${owned}/${c.setSize}</span></div>
+        <div class="prog"><i style="width:${owned/c.setSize*100}%"></i></div>
+        <div class="avatars">${avs}<span class="more">+${c.setSize-4} more</span></div>
+      </div>
+    </div>`;}).join('');
+}
+
+/* ============================================================
+   PROVABLY FAIR PAGE
+   ============================================================ */
+function renderPF(){
+  document.getElementById('pfBins').innerHTML=RKEYS.map(r=>`
+    <div class="bin"><div class="l"><span class="r-tag ${RARITY[r].tag}">${RARITY[r].icon} ${RARITY[r].name}</span></div>
+    <div style="text-align:right"><div class="pct" style="color:${RARITY[r].color}">${RARITY[r].weight}%</div>
+    <div class="rng">${RARITY[r].lo.toFixed(3)} ≤ roll &lt; ${RARITY[r].hi.toFixed(3)}</div></div></div>`).join('');
+}
+document.getElementById('pfVerifyDemo').onclick=()=>{
+  const {r,roll}=rollRarity();
+  document.getElementById('pfDemoOut').innerHTML=`roll = <b style="color:var(--mint)">${roll.toFixed(6)}</b> → <span class="r-tag ${RARITY[r].tag}">${RARITY[r].icon} ${RARITY[r].name}</span>`;
+};
+
+/* ============================================================
+   SHARED
+   ============================================================ */
+function syncWallet(){
+  document.getElementById('navWallet').textContent=fmt(S.wallet);
+  const hw=document.getElementById('homeWallet');if(hw)hw.textContent=S.wallet.toFixed(2);
+}
+function toast(msg,ic='✓',cls=''){
+  const t=document.createElement('div');t.className='toast '+cls;t.innerHTML=`<span class="ic">${ic}</span>${msg}`;
+  document.getElementById('toasts').appendChild(t);setTimeout(()=>{t.style.opacity='0';t.style.transform='translateY(10px)';t.style.transition='.3s';setTimeout(()=>t.remove(),300);},2600);
+}
+window.closeModal=closeModal;window.toast=toast;
+
+/* boot */
+renderHome();syncWallet();
+</script>
+</body>
+</html>

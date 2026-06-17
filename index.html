@@ -235,12 +235,15 @@
   .hand.bulk .mini .mv{font-size:9px;}
   .hand.bulk .mini .mr{font-size:5.5px;top:3px;}
   .mini{width:62px;height:88px;border-radius:9px;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
-    transform:rotateY(90deg);opacity:0;border:1.5px solid var(--mg);background:linear-gradient(165deg,#1b1c22,#0d0d11);box-shadow:0 0 16px -2px var(--mg);}
+    transform:rotateY(90deg);opacity:0;border:1.5px solid var(--mg);background:linear-gradient(165deg,#1b1c22,#0d0d11);box-shadow:0 0 16px -2px var(--mg);
+    touch-action:none;cursor:grab;will-change:transform;}
+  .mini:active{cursor:grabbing;}
   .mini.in{animation:flipin .55s var(--spring) forwards;}
   @keyframes flipin{0%{transform:rotateY(90deg);opacity:0}60%{transform:rotateY(-8deg)}100%{transform:rotateY(0);opacity:1}}
   .mini .mg{font-size:30px;line-height:1;filter:drop-shadow(0 3px 4px rgba(0,0,0,.5));}
   .mini .mv{font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;}
   .mini .mr{position:absolute;top:5px;left:0;right:0;font-size:6.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--mg);}
+  .rv-swipehint{font-size:11px;color:var(--smoke);margin-top:12px;}
   .total{margin-top:16px;}
   .total small{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--smoke);display:block;}
   .total b{font-size:40px;font-weight:700;color:var(--flare);font-variant-numeric:tabular-nums;text-shadow:0 0 30px rgba(255,208,93,.4);}
@@ -331,9 +334,10 @@
       <div class="hand" id="rv-hand"></div>
       <div class="total"><small>Pack value</small><b id="rv-total">$0</b><div class="net" id="rv-net"></div></div>
       <div class="ov-acts">
-        <button class="btn ghost" id="rv-keep">Keep cards</button>
-        <button class="btn gold" id="rv-cash">Cash out</button>
+        <button class="btn gold" id="rv-sellall">Sell</button>
+        <button class="btn green" id="rv-collectall">Collect</button>
       </div>
+      <div class="rv-swipehint">Swipe ← to sell · swipe → to collect</div>
     </div>
 
     <div class="overlay" id="review">
@@ -558,21 +562,26 @@ function openPacks(qty){
 const doOpen=()=>openPacks(1);
 
 /* fast / bulk reveal — one decision for the whole batch */
+let bulkCards=[], bulkSold=0, bulkKept=0;
 function bulkReveal(c,price,qty,cost,picks,vals){
   const n=picks.length, bulk=n>5, stagger=bulk?45:150;
   const total=vals.reduce((a,b)=>a+b,0); pendingTotal=total;
   const bestIdx=picks.reduce((bi,p,i)=>RORDER.indexOf(p.r)>RORDER.indexOf(picks[bi].r)?i:bi,0);
   const bestR=picks[bestIdx].r;
   const hand=$('#rv-hand'); hand.innerHTML=''; hand.classList.toggle('bulk',bulk);
+  bulkCards=[]; bulkSold=0; bulkKept=0;
   picks.forEach((p,i)=>{
     const m=R[p.r], el=document.createElement('div');
     el.className='mini'; el.style.setProperty('--mg',m.color);
     el.innerHTML=`<div class="mr">${m.label}</div><div class="mg">${p.g}</div><div class="mv">${money(vals[i])}</div>`;
+    el.addEventListener('animationend',()=>{ el.classList.remove('in'); el.style.transform='none'; el.style.opacity='1'; },{once:true});
     hand.appendChild(el); setTimeout(()=>el.classList.add('in'),120+i*stagger);
+    const rec={el,v:vals[i],done:false}; bulkCards.push(rec); makeMiniSwipe(rec);
   });
   $('#rv-title').textContent=c.coll;
   $('#rv-sub').textContent=(qty>1?qty+' packs · ':'')+tierFor(price)+' · '+money(price)+(qty>1?' each':'');
   $('#reveal').classList.add('show');
+  updateBulkButtons();
   const dealMs=120+n*stagger+300, tEl=$('#rv-total'); tEl.textContent='$0';
   setTimeout(()=>{
     let cur=0; clearInterval(tEl._iv);
@@ -581,6 +590,47 @@ function bulkReveal(c,price,qty,cost,picks,vals){
     $('#rv-net').innerHTML='Cost '+money(cost)+' · '+(net>=0?'<span style="color:var(--emerald)">net +'+money(net)+'</span>':'<span style="color:var(--crimson)">net −'+money(-net)+'</span>');
   },dealMs);
   if(bestR==='epic'||bestR==='legendary') setTimeout(()=>{ flash(); sparkle(R[bestR].color,bestR==='legendary'); },dealMs);
+}
+function updateBulkButtons(){
+  const rem=bulkCards.filter(r=>!r.done), remTotal=rem.reduce((a,r)=>a+r.v,0);
+  $('#rv-sellall').textContent = rem.length ? 'Sell '+money(remTotal) : 'Sell';
+  $('#rv-collectall').textContent = rem.length>1 ? 'Collect '+rem.length : 'Collect';
+}
+function resolveCard(rec, sell){
+  if(rec.done)return; rec.done=true;
+  const el=rec.el, v=rec.v;
+  if(sell){ wallet+=v; sold+=v; bulkSold+=v; } else { coll+=v; bulkKept+=v; }
+  updateHUD(); updateBulkButtons();
+  el.style.transition='transform .3s ease, opacity .3s';
+  el.style.transform=`translate(${sell?-300:300}px,-12px) rotate(${sell?-22:22}deg)`; el.style.opacity='0';
+  setTimeout(()=>{ el.style.display='none'; if(bulkCards.every(r=>r.done)) finishBulk(); }, 300);
+}
+function resolveAll(sell){
+  const rem=bulkCards.filter(r=>!r.done);
+  if(!rem.length){ finishBulk(); return; }
+  rem.forEach((r,i)=> setTimeout(()=>resolveCard(r,sell), i*55));
+}
+function finishBulk(){
+  $('#reveal').classList.remove('show');
+  const parts=[]; if(bulkSold)parts.push('sold '+money(bulkSold)); if(bulkKept)parts.push('collected '+money(bulkKept));
+  if(parts.length) toast('You '+parts.join(' · '));
+}
+function makeMiniSwipe(rec){
+  const el=rec.el; let d=null;
+  el.addEventListener('pointerdown',e=>{
+    if(rec.done)return;
+    d={x:e.clientX,t:Date.now()};
+    el.style.transition='none'; el.style.zIndex='20'; el.setPointerCapture(e.pointerId);
+    el.addEventListener('pointermove',mv); el.addEventListener('pointerup',up); el.addEventListener('pointercancel',up);
+  });
+  function mv(e){ if(!d)return; const dx=e.clientX-d.x;
+    el.style.transform=`translate(${dx}px,0) rotate(${dx*0.06}deg)`;
+    el.style.boxShadow = dx<-18?'0 0 18px 0 var(--flare)' : dx>18?'0 0 18px 0 var(--emerald)' : ''; }
+  function up(e){ if(!d)return; const dx=e.clientX-d.x, dt=Date.now()-d.t, vx=Math.abs(dx)/dt;
+    el.removeEventListener('pointermove',mv); el.removeEventListener('pointerup',up); d=null; el.style.boxShadow='';
+    if(dx<=-40||(dx<-22&&vx>0.4)) return resolveCard(rec,true);
+    if(dx>=40||(dx>22&&vx>0.4)) return resolveCard(rec,false);
+    el.style.transition='transform .3s var(--spring)'; el.style.transform='none'; el.style.zIndex=''; }
 }
 
 /* review mode — collect or sell each card one at a time */
@@ -659,8 +709,8 @@ function rvFly(dir,sell){
   $('#rvw-sellstamp').style.opacity=0; $('#rvw-collectstamp').style.opacity=0;
   setTimeout(()=>reviewDecision(sell),300);
 }
-$('#rv-cash').onclick=()=>{ wallet+=pendingTotal; sold+=pendingTotal; updateHUD(); toast('Cashed out '+money(pendingTotal)); $('#reveal').classList.remove('show'); };
-$('#rv-keep').onclick=()=>{ coll+=pendingTotal; updateHUD(); toast('Added '+money(pendingTotal)+' to collection'); $('#reveal').classList.remove('show'); };
+$('#rv-sellall').onclick=()=>resolveAll(true);   /* sell every card still on screen */
+$('#rv-collectall').onclick=()=>resolveAll(false); /* collect every card still on screen */
 
 function flash(){const f=$('#flash');f.classList.remove('go');void f.offsetWidth;f.classList.add('go');}
 function sparkle(color,big,wrap){
@@ -717,7 +767,12 @@ $('#a-buy').onclick=()=>openPacks(5);
 $('#a-bolt').onclick=()=>{ fast=!fast; $('#a-bolt').classList.toggle('on',fast);
   toast(fast?'⚡ Fast open on — bulk reveal, decide all at once':'Fast open off — review each card'); };
 document.addEventListener('keydown',e=>{
-  if($('#reveal').classList.contains('show')){ if(e.key==='Enter'||e.key==='Escape')$('#reveal').classList.remove('show'); return; }
+  if($('#reveal').classList.contains('show')){
+    if(e.key.toLowerCase()==='s')resolveAll(true);
+    else if(e.key.toLowerCase()==='c')resolveAll(false);
+    else if(e.key==='Escape')$('#reveal').classList.remove('show');
+    return;
+  }
   if($('#review').classList.contains('show')){
     if(e.key==='ArrowLeft'||e.key.toLowerCase()==='s')reviewDecision(true);
     else if(e.key==='ArrowRight'||e.key.toLowerCase()==='c')reviewDecision(false);

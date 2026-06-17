@@ -53,23 +53,40 @@
   .stage{position:relative;flex:1;display:grid;place-items:center;padding:38px 0 30px;}
   .deckwrap{position:relative;width:min(284px,75vw);aspect-ratio:0.66;}
   #deck{position:absolute;inset:0;}
-  .pack{position:absolute;inset:0;border-radius:14px;overflow:hidden;cursor:grab;touch-action:none;
+  .pack{position:absolute;inset:0;border-radius:18px;overflow:hidden;cursor:grab;touch-action:none;
     will-change:transform,opacity;transform:translate(0,0);background:var(--metal);
     box-shadow:0 26px 50px -18px rgba(0,0,0,.9), 0 0 0 1px rgba(0,0,0,.5),
-      inset 0 0 0 1px rgba(255,255,255,.18), inset 0 2px 14px rgba(255,255,255,.25);}
+      inset 0 0 0 1px rgba(255,255,255,.2), inset 0 2px 14px rgba(255,255,255,.28);}
   .pack.grab{cursor:grabbing;}
   .pack.settle{transition:transform .5s var(--spring);}
   .pack.bounce{animation:bnc .42s ease;}
   @keyframes bnc{0%,100%{transform:translate(0,0)}30%{transform:translate(0,9px) scale(.99)}60%{transform:translate(0,-4px)}}
-  .pack::before{content:"";position:absolute;inset:0;pointer-events:none;border-radius:14px;
-    background:linear-gradient(180deg, rgba(255,255,255,.28), transparent 22%, transparent 72%, rgba(0,0,0,.4)),
-      repeating-linear-gradient(94deg, rgba(255,255,255,.05) 0 2px, transparent 2px 5px);}
-  .sheen{position:absolute;top:-30%;left:-60%;width:60%;height:160%;pointer-events:none;
-    background:linear-gradient(105deg,transparent,rgba(255,255,255,.55),transparent);
+  /* wrinkled-foil sheen + pillow bulge */
+  .pack::before{content:"";position:absolute;inset:0;pointer-events:none;border-radius:18px;z-index:2;
+    background:
+      radial-gradient(120% 74% at 50% 38%, rgba(255,255,255,.20), rgba(255,255,255,0) 60%),
+      linear-gradient(107deg, transparent 11%, rgba(255,255,255,.30) 17%, transparent 24%),
+      linear-gradient(107deg, transparent 37%, rgba(0,0,0,.20) 43%, transparent 50%),
+      linear-gradient(107deg, transparent 59%, rgba(255,255,255,.22) 66%, transparent 73%),
+      linear-gradient(107deg, transparent 81%, rgba(0,0,0,.18) 87%, transparent 94%),
+      linear-gradient(180deg, rgba(255,255,255,.26), transparent 13%, transparent 83%, rgba(0,0,0,.46));}
+  .sheen{position:absolute;top:-30%;left:-60%;width:60%;height:160%;pointer-events:none;z-index:3;
+    background:linear-gradient(105deg,transparent,rgba(255,255,255,.6),transparent);
     transform:skewX(-18deg);animation:sweep 5.5s ease-in-out infinite;mix-blend-mode:overlay;}
   @keyframes sweep{0%,12%{left:-60%}55%,100%{left:130%}}
+  /* crimped foil seals (top & bottom) with serrated/zigzag inner edge */
+  .crimp{position:absolute;left:0;right:0;height:42px;z-index:4;pointer-events:none;--zw:16px;
+    background:
+      repeating-linear-gradient(90deg, rgba(255,255,255,.24) 0 1px, rgba(0,0,0,.32) 1px 2px, transparent 2px 4px),
+      linear-gradient(180deg, rgba(0,0,0,.30), rgba(255,255,255,.16) 50%, rgba(0,0,0,.34));}
+  .crimp.top{top:0;filter:drop-shadow(0 2px 2px rgba(0,0,0,.45));
+    -webkit-mask:conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) 0 0/var(--zw) 100%;
+    mask:conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) 0 0/var(--zw) 100%;}
+  .crimp.bot{bottom:0;filter:drop-shadow(0 -2px 2px rgba(0,0,0,.45));
+    -webkit-mask:conic-gradient(from 135deg at top,#0000,#000 1deg 89deg,#0000 90deg) 0 0/var(--zw) 100%;
+    mask:conic-gradient(from 135deg at top,#0000,#000 1deg 89deg,#0000 90deg) 0 0/var(--zw) 100%;}
 
-  .pframe{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;padding:24px 18px;text-align:center;z-index:3;}
+  .pframe{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;padding:48px 18px;text-align:center;z-index:5;}
   .emboss{color:var(--ink-foil);text-shadow:0 1px 0 var(--ink-hi),0 -1px 1px rgba(0,0,0,.35);}
   .pk-vol{display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:center;}
   .vol-tag{font-size:9.5px;letter-spacing:.14em;font-weight:700;text-transform:uppercase;color:var(--ink-foil);display:flex;align-items:center;gap:4px;}
@@ -420,6 +437,8 @@ function packHTML(){
   const maxv=cardValue(price,'legendary',c.vol);
   return `<div class="pack" style="${style}">
     <div class="sheen"></div>
+    <div class="crimp top"></div>
+    <div class="crimp bot"></div>
     <div class="pframe">
       <div class="pk-vol">
         <span class="vol-tag"><svg viewBox="0 0 24 24"><path d="M13 2L4 14h6l-1 8 9-12h-6z"/></svg>${c.vol} Volatility</span>

@@ -562,6 +562,7 @@ function openPacks(qty){
 const doOpen=()=>openPacks(1);
 
 /* fast / bulk reveal — one decision for the whole batch */
+const SELL_RATE=0.95; // selling pays 5% less than a card's value
 let bulkCards=[], bulkSold=0, bulkKept=0;
 function bulkReveal(c,price,qty,cost,picks,vals){
   const n=picks.length, bulk=n>5, stagger=bulk?45:150;
@@ -586,20 +587,19 @@ function bulkReveal(c,price,qty,cost,picks,vals){
   setTimeout(()=>{
     let cur=0; clearInterval(tEl._iv);
     tEl._iv=setInterval(()=>{cur+=total/22; if(cur>=total){cur=total;clearInterval(tEl._iv);} tEl.textContent=money(cur);},24);
-    const net=total-cost;
-    $('#rv-net').innerHTML='Cost '+money(cost)+' · '+(net>=0?'<span style="color:var(--emerald)">net +'+money(net)+'</span>':'<span style="color:var(--crimson)">net −'+money(-net)+'</span>');
   },dealMs);
   if(bestR==='epic'||bestR==='legendary') setTimeout(()=>{ flash(); sparkle(R[bestR].color,bestR==='legendary'); },dealMs);
 }
 function updateBulkButtons(){
   const rem=bulkCards.filter(r=>!r.done), remTotal=rem.reduce((a,r)=>a+r.v,0);
-  $('#rv-sellall').textContent = rem.length ? 'Sell '+money(remTotal) : 'Sell';
-  $('#rv-collectall').textContent = rem.length>1 ? 'Collect '+rem.length : 'Collect';
+  $('#rv-sellall').textContent = rem.length ? 'Sell '+money(remTotal*SELL_RATE) : 'Sell';
+  $('#rv-collectall').textContent = rem.length ? 'Collect '+money(remTotal) : 'Collect';
+  $('#rv-net').innerHTML = `Sold <span style="color:var(--flare);font-weight:700">${money(bulkSold)}</span> · Collected <span style="color:var(--emerald);font-weight:700">${money(bulkKept)}</span>`;
 }
 function resolveCard(rec, sell){
   if(rec.done)return; rec.done=true;
   const el=rec.el, v=rec.v;
-  if(sell){ wallet+=v; sold+=v; bulkSold+=v; } else { coll+=v; bulkKept+=v; }
+  if(sell){ const g=v*SELL_RATE; wallet+=g; sold+=g; bulkSold+=g; } else { coll+=v; bulkKept+=v; }
   updateHUD(); updateBulkButtons();
   el.style.transition='transform .3s ease, opacity .3s';
   el.style.transform=`translate(${sell?-300:300}px,-12px) rotate(${sell?-22:22}deg)`; el.style.opacity='0';
@@ -647,7 +647,7 @@ function showReviewCard(){
   $('#rvw-coll').textContent=rvwColl;
   $('#rvw-rar').textContent=m.label; $('#rvw-rar').style.color=m.color;
   $('#rvw-g').textContent=p.g; $('#rvw-name').textContent=p.n;
-  $('#rvw-sell').textContent='Sell '+money(v);
+  $('#rvw-sell').textContent='Sell '+money(v*SELL_RATE);
   const card=$('#rvw-card'); card.style.setProperty('--mg',m.color);
   card.style.boxShadow=`0 0 50px -8px ${m.color}, inset 0 0 0 2px ${m.color}66`;
   card.style.transition='none'; card.style.transform=''; card.style.opacity='';
@@ -663,7 +663,7 @@ function showReviewCard(){
 }
 function reviewDecision(sell){
   const {v}=rvwQueue[rvwIdx];
-  if(sell){ wallet+=v; sold+=v; rvwSold+=v; } else { coll+=v; rvwKept+=v; }
+  if(sell){ const g=v*SELL_RATE; wallet+=g; sold+=g; rvwSold+=g; } else { coll+=v; rvwKept+=v; }
   updateHUD(); rvwIdx++;
   if(rvwIdx<rvwQueue.length) showReviewCard();
   else { $('#review').classList.remove('show'); toast('Reviewed '+rvwQueue.length+' cards · sold '+money(rvwSold)+' · collected '+money(rvwKept)); }

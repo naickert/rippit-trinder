@@ -204,7 +204,7 @@
   }
 
   /* ---------- Stats ---------- */
-  .stats{display:flex;justify-content:space-between;align-items:center;padding:2px 24px 12px;gap:6px;position:relative;z-index:70;
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);align-items:center;padding:2px 24px 12px;gap:6px;position:relative;z-index:70;
     border-bottom:1px solid rgba(255,255,255,.07);background:linear-gradient(180deg,rgba(10,10,12,.55),transparent);}
   .stat{display:flex;flex-direction:column;gap:3px;}
   .stat{align-items:center;} .stat:first-child{align-items:flex-start;} .stat:last-child{align-items:flex-end;}
@@ -289,7 +289,7 @@
 
     <div class="stats">
       <div class="stat wallet"><small>Wallet</small><b id="s-wallet">$250</b></div>
-      <div class="stat sold" style="display:none"><small>Sold</small><b id="s-sold">$0</b></div>
+      <div class="stat sold" style="visibility:hidden"><small>Sold</small><b id="s-sold">$0</b></div>
       <div class="stat coll"><small>Collection</small><b id="s-coll">$45</b></div>
     </div>
 
@@ -315,7 +315,7 @@
       <div class="action open" id="a-open">
         <div class="ring">
           <svg viewBox="0 0 24 24"><path d="M12 2.5l2.1 6.6 6.9.2-5.5 4.1 2 6.6L12 16.2 6.5 20l2-6.6L3 9.3l6.9-.2z"/></svg>
-        </div><span class="lbl">Open</span>
+        </div><span class="lbl">Buy</span>
       </div>
       <div class="pricer">
         <button class="step" id="p-minus" aria-label="Lower price">−</button>
@@ -757,7 +757,7 @@ $('#h-right').onclick=()=>changeColl('left');    /* › next theme */
 /* ---------- HUD / controls ---------- */
 function updateHUD(){
   $('#s-wallet').textContent=money(wallet); $('#s-sold').textContent=money(sold); $('#s-coll').textContent=money(coll);
-  document.querySelector('.stat.sold').style.display = sold>0 ? '' : 'none'; // hide Sold until there's something to show
+  document.querySelector('.stat.sold').style.visibility = sold>0 ? 'visible' : 'hidden'; // keep its column; just hide until >0
 }
 function toast(){} /* toast notifications removed */
 

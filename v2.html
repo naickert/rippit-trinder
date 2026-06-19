@@ -249,11 +249,18 @@
   .total b{font-size:40px;font-weight:700;color:var(--flare);font-variant-numeric:tabular-nums;text-shadow:0 0 30px rgba(255,208,93,.4);}
   .total .net{font-size:12px;color:var(--smoke);margin-top:3px;}
   .ov-acts{display:flex;gap:10px;margin-top:20px;}
+  /* per-card review action row: Sell all (left) · [Sell $X · Collect] · Collect all (right) */
+  .rvw-acts{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;max-width:360px;margin-top:20px;}
+  .rvw-center{display:flex;gap:8px;}
+  .rvw-center .btn{padding:12px 16px;}
 
   .btn{font-family:inherit;font-weight:600;font-size:12.5px;letter-spacing:.04em;cursor:pointer;border:none;border-radius:99px;padding:13px 20px;transition:transform .18s var(--spring),filter .2s;}
   .btn:active{transform:scale(.95);}
   .btn.gold{background:var(--flare);color:#1a1306;box-shadow:0 10px 26px -10px rgba(255,208,93,.7);}
   .btn.ghost{background:rgba(255,255,255,.07);color:var(--ink);border:1px solid rgba(255,255,255,.14);}
+  .btn.sm{padding:10px 11px;font-size:10px;letter-spacing:.06em;}
+  .btn.ogold{background:rgba(255,208,93,.12);color:var(--flare);border:1px solid rgba(255,208,93,.45);}
+  .btn.ogreen{background:rgba(63,207,134,.12);color:var(--emerald);border:1px solid rgba(63,207,134,.45);}
 
   .det{width:100%;max-width:320px;text-align:left;}
   .det .dh{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;}
@@ -352,9 +359,13 @@
       <div class="rvw-name" id="rvw-name">Card</div>
       <div class="rvw-val" id="rvw-val">$0</div>
       <div class="rvw-dots" id="rvw-dots"></div>
-      <div class="ov-acts">
-        <button class="btn gold" id="rvw-sell">Sell $0</button>
-        <button class="btn green" id="rvw-collect">Collect</button>
+      <div class="rvw-acts">
+        <button class="btn sm ogold" id="rvw-sellall">Sell all</button>
+        <div class="rvw-center">
+          <button class="btn gold" id="rvw-sell">Sell $0</button>
+          <button class="btn green" id="rvw-collect">Collect</button>
+        </div>
+        <button class="btn sm ogreen" id="rvw-collectall">Collect all</button>
       </div>
       <div class="rvw-tally" id="rvw-tally"></div>
     </div>
@@ -670,6 +681,16 @@ function reviewDecision(sell){
 }
 $('#rvw-sell').onclick=()=>reviewDecision(true);
 $('#rvw-collect').onclick=()=>reviewDecision(false);
+function reviewResolveAll(sell){ // resolve the current card and every remaining one
+  for(let i=rvwIdx;i<rvwQueue.length;i++){
+    const v=rvwQueue[i].v;
+    if(sell){ const g=v*SELL_RATE; wallet+=g; sold+=g; rvwSold+=g; } else { coll+=v; rvwKept+=v; }
+  }
+  rvwIdx=rvwQueue.length; updateHUD();
+  $('#review').classList.remove('show');
+}
+$('#rvw-sellall').onclick=()=>reviewResolveAll(true);
+$('#rvw-collectall').onclick=()=>reviewResolveAll(false);
 
 /* swipe the review card — left = sell, right = collect */
 let rdrag=null;

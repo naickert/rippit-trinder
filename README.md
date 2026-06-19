@@ -12,8 +12,9 @@ Single-file, self-contained HTML (no build step, no dependencies beyond a webfon
 
 | File | What it is |
 |------|------------|
-| `index.html` | The current prototype (v2) — the main experience |
-| `trinder.html` | v1 — the original Tinder-style swipe deck |
+| `index.html` | The main prototype — stats bar at the bottom |
+| `v2.html` | Same app with the Wallet/Sold/Collection stats moved to the **top** ([live](https://naickert.github.io/rippit-trinder/v2.html)) |
+| `trinder.html` | The original Tinder-style swipe deck |
 | `rippit-prototype.html` | An earlier prototype |
 
 ## How to use (`index.html`)

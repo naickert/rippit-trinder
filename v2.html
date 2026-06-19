@@ -262,6 +262,16 @@
   .btn.ogold{background:rgba(255,208,93,.12);color:var(--flare);border:1px solid rgba(255,208,93,.45);}
   .btn.ogreen{background:rgba(63,207,134,.12);color:var(--emerald);border:1px solid rgba(63,207,134,.45);}
 
+  /* review summary */
+  .rs-rows{display:flex;flex-direction:column;gap:12px;margin:26px 0 24px;width:100%;max-width:300px;}
+  .rs-row{display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:14px 16px;text-align:left;}
+  .rs-ic{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-size:20px;font-weight:700;flex-shrink:0;}
+  .rs-ic.sell{background:rgba(255,208,93,.14);color:var(--flare);border:1px solid rgba(255,208,93,.4);}
+  .rs-ic.keep{background:rgba(63,207,134,.14);color:var(--emerald);border:1px solid rgba(63,207,134,.4);}
+  .rs-txt{display:flex;flex-direction:column;gap:2px;}
+  .rs-txt b{font-size:15px;font-weight:700;}
+  .rs-txt small{font-size:12px;color:var(--smoke);}
+
   .det{width:100%;max-width:320px;text-align:left;}
   .det .dh{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;}
   .det .dh b{font-size:18px;}
@@ -370,6 +380,22 @@
       <div class="rvw-tally" id="rvw-tally"></div>
     </div>
 
+    <div class="overlay" id="revsum">
+      <div class="ov-tag">Pack resolved</div>
+      <div class="ov-title" id="rs-title">Almighty Empire</div>
+      <div class="rs-rows">
+        <div class="rs-row" id="rs-row-sold">
+          <span class="rs-ic sell">←</span>
+          <div class="rs-txt"><b id="rs-sold-n">0 cards sold</b><small id="rs-sold-v">+$0 to wallet</small></div>
+        </div>
+        <div class="rs-row" id="rs-row-kept">
+          <span class="rs-ic keep">→</span>
+          <div class="rs-txt"><b id="rs-kept-n">0 cards collected</b><small id="rs-kept-v">+$0 to collection</small></div>
+        </div>
+      </div>
+      <button class="btn gold" id="rs-done">Done</button>
+    </div>
+
     <div class="overlay" id="more">
       <div class="det" id="more-body"></div>
       <button class="btn ghost" id="more-close" style="margin-top:18px">Close</button>
@@ -444,7 +470,7 @@ let fast=false; // lightning / fast-open toggle
 const $=s=>document.querySelector(s);
 const deckEl=$('#deck');
 const money=n=>'$'+Math.round(n).toLocaleString('en-US');
-const overlayOpen=()=>$('#reveal').classList.contains('show')||$('#more').classList.contains('show')||$('#review').classList.contains('show');
+const overlayOpen=()=>$('#reveal').classList.contains('show')||$('#more').classList.contains('show')||$('#review').classList.contains('show')||$('#revsum').classList.contains('show');
 
 function packHTML(){
   const c=COLLECTIONS[ci], price=PRICES[pi], f=FOIL[c.foil];
@@ -645,10 +671,10 @@ function makeMiniSwipe(rec){
 }
 
 /* review mode — collect or sell each card one at a time */
-let rvwQueue=[], rvwIdx=0, rvwSold=0, rvwKept=0, rvwColl='';
+let rvwQueue=[], rvwIdx=0, rvwSold=0, rvwKept=0, rvwSoldN=0, rvwKeptN=0, rvwColl='';
 function startReview(c,picks,vals){
   rvwQueue=picks.map((p,i)=>({p,v:vals[i]}));
-  rvwIdx=0; rvwSold=0; rvwKept=0; rvwColl=c.coll;
+  rvwIdx=0; rvwSold=0; rvwKept=0; rvwSoldN=0; rvwKeptN=0; rvwColl=c.coll;
   $('#review').classList.add('show');
   showReviewCard();
 }
@@ -674,23 +700,35 @@ function showReviewCard(){
 }
 function reviewDecision(sell){
   const {v}=rvwQueue[rvwIdx];
-  if(sell){ const g=v*SELL_RATE; wallet+=g; sold+=g; rvwSold+=g; } else { coll+=v; rvwKept+=v; }
+  if(sell){ const g=v*SELL_RATE; wallet+=g; sold+=g; rvwSold+=g; rvwSoldN++; } else { coll+=v; rvwKept+=v; rvwKeptN++; }
   updateHUD(); rvwIdx++;
   if(rvwIdx<rvwQueue.length) showReviewCard();
-  else { $('#review').classList.remove('show'); toast('Reviewed '+rvwQueue.length+' cards · sold '+money(rvwSold)+' · collected '+money(rvwKept)); }
+  else endReview();
 }
 $('#rvw-sell').onclick=()=>reviewDecision(true);
 $('#rvw-collect').onclick=()=>reviewDecision(false);
 function reviewResolveAll(sell){ // resolve the current card and every remaining one
   for(let i=rvwIdx;i<rvwQueue.length;i++){
     const v=rvwQueue[i].v;
-    if(sell){ const g=v*SELL_RATE; wallet+=g; sold+=g; rvwSold+=g; } else { coll+=v; rvwKept+=v; }
+    if(sell){ const g=v*SELL_RATE; wallet+=g; sold+=g; rvwSold+=g; rvwSoldN++; } else { coll+=v; rvwKept+=v; rvwKeptN++; }
   }
   rvwIdx=rvwQueue.length; updateHUD();
-  $('#review').classList.remove('show');
+  endReview();
 }
 $('#rvw-sellall').onclick=()=>reviewResolveAll(true);
 $('#rvw-collectall').onclick=()=>reviewResolveAll(false);
+function endReview(){ // show a summary of what was sold vs collected
+  $('#review').classList.remove('show');
+  $('#rs-title').textContent=rvwColl;
+  $('#rs-row-sold').style.display = rvwSoldN ? 'flex' : 'none';
+  $('#rs-row-kept').style.display = rvwKeptN ? 'flex' : 'none';
+  $('#rs-sold-n').textContent = rvwSoldN+(rvwSoldN===1?' card sold':' cards sold');
+  $('#rs-sold-v').textContent = '+'+money(rvwSold)+' to wallet';
+  $('#rs-kept-n').textContent = rvwKeptN+(rvwKeptN===1?' card collected':' cards collected');
+  $('#rs-kept-v').textContent = '+'+money(rvwKept)+' to collection';
+  $('#revsum').classList.add('show');
+}
+$('#rs-done').onclick=()=>$('#revsum').classList.remove('show');
 
 /* swipe the review card — left = sell, right = collect */
 let rdrag=null;
@@ -787,6 +825,7 @@ $('#a-buy').onclick=()=>openPacks(5);
 $('#a-bolt').onclick=()=>{ fast=!fast; $('#a-bolt').classList.toggle('on',fast);
   toast(fast?'⚡ Fast open on — bulk reveal, decide all at once':'Fast open off — review each card'); };
 document.addEventListener('keydown',e=>{
+  if($('#revsum').classList.contains('show')){ if(e.key==='Enter'||e.key==='Escape')$('#revsum').classList.remove('show'); return; }
   if($('#reveal').classList.contains('show')){
     if(e.key.toLowerCase()==='s')resolveAll(true);
     else if(e.key.toLowerCase()==='c')resolveAll(false);
